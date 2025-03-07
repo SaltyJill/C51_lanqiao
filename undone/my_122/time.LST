@@ -1,0 +1,288 @@
+C51 COMPILER V9.52.0.0   TIME                                                              01/06/2025 18:29:03 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE TIME
+OBJECT MODULE PLACED IN time.OBJ
+COMPILER INVOKED BY: D:\por-tool\Keil\C51\BIN\C51.EXE time.c BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "time.h"
+   2          extern volatile u32 ISR_1Ms;
+   3          // led 显示
+   4          void led_dis(u8 led_out)
+   5          {
+   6   1          P0 = ~led_out;
+   7   1          P2 = (P2 & 0x1f) | 0x80;
+   8   1          P2 = P2 & 0x1f;
+   9   1      }
+  10          void outer_cls(void)
+  11          {
+  12   1          P0 = 0xff;
+  13   1          P2 = (P2 & 0x1f) | 0x80;
+  14   1          P2 = P2 & 0x1f;
+  15   1          P0 = 0x40;
+  16   1          P2 = (P2 & 0x1f) | 0xA0;
+  17   1          P2 = P2 & 0x1f;
+  18   1      }
+  19          void delay_1ms(u16 ts)
+  20          {
+  21   1          u32 Time_now;
+  22   1          Time_now = ISR_1Ms;
+  23   1          while ((ISR_1Ms - Time_now) < ts){}
+  24   1      }
+  25          void Seg_trans(u8 *pseg_Disp, u8 *pseg_Code)
+  26          {
+  27   1          u8 i, j;
+  28   1          for (i = 0, j = 0; j < 8; i++, j++)
+  29   1          {
+  30   2              switch (*(pseg_Disp + i))
+  31   2              {
+  32   3              case '0':
+  33   3                  *(pseg_Code + j) = 0xc0;
+  34   3                  break;
+  35   3              case '1':
+  36   3                  *(pseg_Code + j) = 0xf9;
+  37   3                  break;
+  38   3              case '2':
+  39   3                  *(pseg_Code + j) = 0xa4;
+  40   3                  break;
+  41   3              case '3':
+  42   3                  *(pseg_Code + j) = 0xb0;
+  43   3                  break;
+  44   3              case '4':
+  45   3                  *(pseg_Code + j) = 0x99;
+  46   3                  break;
+  47   3              case '5':
+  48   3                  *(pseg_Code + j) = 0x92;
+  49   3                  break;
+  50   3              case '6':
+  51   3                  *(pseg_Code + j) = 0x82;
+  52   3                  break;
+  53   3              case '7':
+  54   3                  *(pseg_Code + j) = 0xf8;
+  55   3                  break;
+C51 COMPILER V9.52.0.0   TIME                                                              01/06/2025 18:29:03 PAGE 2   
+
+  56   3              case '8':
+  57   3                  *(pseg_Code + j) = 0x80;
+  58   3                  break;
+  59   3              case '9':
+  60   3                  *(pseg_Code + j) = 0x90;
+  61   3                  break;
+  62   3              case 'A':
+  63   3                  *(pseg_Code + j) = 0x88;
+  64   3                  break;
+  65   3              case 'B':
+  66   3                  *(pseg_Code + j) = 0x83;
+  67   3                  break;
+  68   3              case 'C':
+  69   3                  *(pseg_Code + j) = 0xc6;
+  70   3                  break;
+  71   3              case 'D':
+  72   3                  *(pseg_Code + j) = 0xa1;
+  73   3                  break;
+  74   3              case 'E':
+  75   3                  *(pseg_Code + j) = 0x86;
+  76   3                  break;
+  77   3              case 'F':
+  78   3                  *(pseg_Code + j) = 0x8e;
+  79   3                  break;
+  80   3              case 'U':
+  81   3                  *(pseg_Code + j) = 0xc1;
+  82   3                  break;
+  83   3              case 'P':
+  84   3                  *(pseg_Code + j) = 0x8c;
+  85   3                  break;
+  86   3              case 'N':
+  87   3                  *(pseg_Code + j) = 0xab;
+  88   3                  break;
+  89   3              case '-':
+  90   3                  *(pseg_Code + j) = 0xbf;
+  91   3                  break;
+  92   3              case ' ':
+  93   3                  *(pseg_Code + j) = 0xff;
+  94   3                  break;
+  95   3              case '.':
+  96   3                  j = j - 1;
+  97   3                  *(pseg_Code + j) &= 0x7f;
+  98   3                  break;
+  99   3              default:
+ 100   3                  *(pseg_Code + j) = 0xff;
+ 101   3              }
+ 102   2          }
+ 103   1      }
+ 104          void Seg_Disp(u8 *pseg_Code, u8 seg_Add)
+ 105          {
+ 106   1          P0 = 0xff;
+ 107   1          P2 = (P2 & 0x1f) | 0xE0;
+ 108   1          P2 &= 0x1f;
+ 109   1          P0 = (u8)1 << seg_Add;
+ 110   1          P2 = (P2 & 0x1f) | 0xC0;
+ 111   1          P2 = P2 & 0x1F;
+ 112   1          P0 = *(pseg_Code + seg_Add);
+ 113   1          P2 = (P2 & 0x1F) | 0xE0;
+ 114   1          P2 = P2 & 0x1F;
+ 115   1      }
+ 116          void T1_Init(void) // 12T 12M 1ms
+ 117          {
+C51 COMPILER V9.52.0.0   TIME                                                              01/06/2025 18:29:03 PAGE 3   
+
+ 118   1          TH1 = 0xFC;
+ 119   1          TL1 = 0x18;
+ 120   1          TMOD &= 0x0F;
+ 121   1          AUXR &= ~(1 << 6);
+ 122   1          TF1 = 0;
+ 123   1          ET1 = 1;
+ 124   1          EA = 1;
+ 125   1          TR1 = 1;
+ 126   1      }
+ 127          void T0_Init(void) // 计数模式，00开始，溢出置0
+ 128          {
+ 129   1          TMOD & = 0x04F;
+*** ERROR C141 IN LINE 129 OF time.c: syntax error near '='
+ 130   1          TH1 = 0x00;
+ 131   1          TL1 = 0x00;
+ 132   1          ET0 = 0;
+ 133   1          TF = 0;
+*** ERROR C202 IN LINE 133 OF time.c: 'TF': undefined identifier
+ 134   1          TR0 = 1;
+ 135   1      }
+ 136          unsigned char key_MatrixRead(void)
+ 137          {
+ 138   1          u16 keyRD1, keyRD2;
+ 139   1          u8 button = 0;
+ 140   1          P44 = 0;
+ 141   1          P42 = 1;
+ 142   1          P35 = 1;
+ 143   1          P34 = 1;
+ 144   1          keyRD1 = P3 & 0x0f;
+ 145   1          P44 = 1;
+ 146   1          P42 = 0;
+ 147   1          keyRD1 = (keyRD1 << 4) | P3 & 0x0f;
+ 148   1          P42 = 1;
+ 149   1          P35 = 0;
+ 150   1          keyRD1 = (keyRD1 << 4) | P3 & 0x0f;
+ 151   1          P35 = 1;
+ 152   1          P34 = 0;
+ 153   1          keyRD1 = (keyRD1 << 4) | P3 & 0x0f;
+ 154   1          if (keyRD1 == 0xffff)
+ 155   1          {
+ 156   2              return 0;
+ 157   2          }
+ 158   1          delay_1ms(10);
+ 159   1          P44 = 0;
+ 160   1          P42 = 1;
+ 161   1          P35 = 1;
+ 162   1          P34 = 1;
+ 163   1          keyRD2 = P3 & 0x0f;
+ 164   1          P44 = 1;
+ 165   1          P42 = 0;
+ 166   1          keyRD2 = (keyRD2 << 4) | P3 & 0x0f;
+ 167   1          P42 = 1;
+ 168   1          P35 = 0;
+ 169   1          keyRD2 = (keyRD2 << 4) | P3 & 0x0f;
+ 170   1          P35 = 1;
+ 171   1          P34 = 0;
+ 172   1          keyRD2 = (keyRD2 << 4) | P3 & 0x0f;
+ 173   1          if (keyRD1 != keyRD2)
+ 174   1          {
+ 175   2              return 0;
+ 176   2          }
+ 177   1      
+C51 COMPILER V9.52.0.0   TIME                                                              01/06/2025 18:29:03 PAGE 4   
+
+ 178   1          switch (~keyRD2)
+ 179   1          {
+ 180   2          case 0x8000:
+ 181   2              button = 1;
+ 182   2              break;
+ 183   2          case 0x4000:
+ 184   2              button = 2;
+ 185   2              break;
+ 186   2          case 0x2000:
+ 187   2              button = 3;
+ 188   2              break;
+ 189   2          case 0x1000:
+ 190   2              button = 4;
+ 191   2              break;
+ 192   2          case 0x0800:
+ 193   2              button = 5;
+ 194   2              break;
+ 195   2          case 0x0400:
+ 196   2              button = 6;
+ 197   2              break;
+ 198   2          case 0x0200:
+ 199   2              button = 7;
+ 200   2              break;
+ 201   2          case 0x0100:
+ 202   2              button = 8;
+ 203   2              break;
+ 204   2          case 0x0080: // S12
+ 205   2              button = 9;
+ 206   2              break;
+ 207   2          case 0x0040:
+ 208   2              button = 10;
+ 209   2              break;
+ 210   2          case 0x0020:
+ 211   2              button = 11;
+ 212   2              break;
+ 213   2          case 0x0010:
+ 214   2              button = 12;
+ 215   2              break;
+ 216   2          case 0x0008: // S16
+ 217   2              button = 13;
+ 218   2              break;
+ 219   2          case 0x0004: // S17
+ 220   2              button = 14;
+ 221   2              break;
+ 222   2          case 0x0002:
+ 223   2              button = 15;
+ 224   2              break;
+ 225   2          case 0x0001:
+ 226   2              button = 16;
+ 227   2              break;
+ 228   2          default:
+ 229   2              break;
+ 230   2          }
+ 231   1          return button;
+ 232   1      }
+ 233          unsigned char key_IndependRead(void)
+ 234          {
+ 235   1          u8 keyRD1, keyRD2;
+ 236   1          u8 button = 0;
+ 237   1          keyRD1 = P3 & 0x0f;
+ 238   1          if (keyRD1 == 0x0f)
+ 239   1          {
+C51 COMPILER V9.52.0.0   TIME                                                              01/06/2025 18:29:03 PAGE 5   
+
+ 240   2              return 0;
+ 241   2          }
+ 242   1          delay_1ms(10);
+ 243   1          keyRD2 = P3 & 0x0f;
+ 244   1          if (keyRD1 != keyRD2)
+ 245   1          {
+ 246   2              return 0;
+ 247   2          }
+ 248   1          switch (~keyRD2)
+ 249   1          {
+ 250   2          case 0xF8:
+ 251   2              button = 1;
+ 252   2              break;
+ 253   2          case 0xF4:
+ 254   2              button = 2;
+ 255   2              break;
+ 256   2          case 0xF2:
+ 257   2              button = 3;
+ 258   2              break;
+ 259   2          case 0xF1:
+ 260   2              button = 4;
+ 261   2              break;
+ 262   2          default:
+ 263   2              button = 0;
+ 264   2              break;
+ 265   2          }
+ 266   1          return button;
+ 267   1      }
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  2 ERROR(S)
