@@ -1,0 +1,5 @@
+"iic.obj",
+"main.obj",
+"time.obj" 
+TO "my_112" 
+RAMSIZE(256) 

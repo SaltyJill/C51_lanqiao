@@ -1,0 +1,256 @@
+C51 COMPILER V9.52.0.0   MAIN                                                              01/05/2025 13:26:27 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: D:\por-tool\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "main.h"
+   2          #include "time.h"
+   3          #include "iic.h"
+   4          
+   5          #include <stdio.h>
+   6          #include <string.h>
+   7          #include <math.h>
+   8          u8 led_out = 0;       // LED 输出
+   9          u8 led1_Flag = 0;     // LED_1 点亮允许
+  10          u8 led3_cnt;          // LED_3 连续无效按键数
+  11          u32 breakin_Time = 0; // 穿越时间
+  12          
+  13          u8 seg_Disp[10] = "12 34567"; // 数码管显示的状态，显示码，位置
+  14          u8 seg_Code[8] = {0};
+  15          u8 seg_Add = 0;
+  16          
+  17          volatile u32 ISR_1Ms = 0; // 全局每1ms中断一次的时钟变量，可供time.c调用
+  18          u32 Time_10Ms = 0;        // 10ms分频
+  19          
+  20          u8 Menu = 0;          // 三个菜单
+  21          u8 nouse_keyNum = 0;  // 无效按键个数
+  22          s16 volta_Base = 2.5; // 参考电压
+  23          
+  24          u8 break_num;      // 穿越参考电压次数
+  25          u8 ADC_Flag = 0;   // ADC工作状态
+  26          u16 ADC_100Ms = 0; // ADC转换每100ms进行一次
+  27          u16 ADC;           // ADC转换结果
+  28          
+  29          u8 EE_save = 2.50;
+  30          
+  31          void key_Fuc(void);
+  32          void seg_Update(void);
+  33          void ADC_Fuc(void);
+  34          void LED_Fuc(void);
+  35          
+  36          void main(void)
+  37          {
+  38   1          outer_cls();
+  39   1          T1_Init();
+  40   1          EE_RD(&EE_save, 0, 1);
+  41   1          if (EE_save > 50)
+  42   1          {
+  43   2              EE_save = 0;
+  44   2          }
+  45   1          volta_Base = EE_save * 10;
+  46   1          EE_WR(&EE_save, 0, 1);
+  47   1          while (1)
+  48   1          {
+  49   2              key_Fuc();
+  50   2              seg_Update();
+  51   2              ADC_Fuc();
+  52   2              LED_Fuc();
+  53   2          }
+  54   1      }
+  55          void T1_TSR() interrupt 3 // 1ms 12T
+C51 COMPILER V9.52.0.0   MAIN                                                              01/05/2025 13:26:27 PAGE 2   
+
+  56          {
+  57   1          ISR_1Ms++;
+  58   1          /*数码管显示*/
+  59   1          Seg_Disp(seg_Code, seg_Add);
+  60   1          if (++seg_Add == 8)
+  61   1          {
+  62   2              seg_Add = 0;
+  63   2          }
+  64   1          /*分频10ms*/
+  65   1          if (ISR_1Ms % 10 == 0)
+  66   1          {
+  67   2              Time_10Ms++;
+  68   2          }
+  69   1          if (++ADC_100Ms == 100)
+  70   1          {
+  71   2              ADC_100Ms = 0;
+  72   2              ADC_Flag = 1;
+  73   2          }
+  74   1      }
+  75          void key_Fuc(void)
+  76          {
+  77   1          static u8 keyPast = 0;
+  78   1          u8 keyNow;
+  79   1          u8 unkeyN_last;
+  80   1          keyNow = key_MatrixRead();
+  81   1          if (keyNow != keyPast)
+  82   1          {
+  83   2              switch (keyNow)
+  84   2              {
+  85   3              case 0:
+  86   3                  break;
+  87   3              case 9:
+  88   3                  Menu = (++Menu) % 3;
+  89   3                  if (Menu == 2)
+  90   3                  {
+  91   4                      EE_save = volta_Base / 10;
+  92   4                      EE_WR(&EE_save, 0, 1);
+  93   4                  }
+  94   3                  nouse_keyNum = 0;
+  95   3                  break;
+  96   3              case 10:
+  97   3                  if (Menu == 2)
+  98   3                  {
+  99   4                      break_num = 0;
+ 100   4                      nouse_keyNum = 0;
+ 101   4                  }
+ 102   3                  break;
+ 103   3              case 13:
+ 104   3                  if (Menu == 1)
+ 105   3                  {
+ 106   4                      volta_Base += 50;
+ 107   4                      nouse_keyNum = 0;
+ 108   4                  }
+ 109   3                  else if (volta_Base > 500)
+ 110   3                  {
+ 111   4                      volta_Base = 0;
+ 112   4                      nouse_keyNum = 0;
+ 113   4                  }
+ 114   3                  break;
+ 115   3              case 14:
+ 116   3                  if (Menu == 1)
+ 117   3                  {
+C51 COMPILER V9.52.0.0   MAIN                                                              01/05/2025 13:26:27 PAGE 3   
+
+ 118   4                      volta_Base -= 50;
+ 119   4                      nouse_keyNum = 0;
+ 120   4                  }
+ 121   3                  else if (volta_Base < 0)
+ 122   3                  {
+ 123   4                      volta_Base = 500;
+ 124   4                      nouse_keyNum = 0;
+ 125   4                  }
+ 126   3                  break;
+ 127   3              default:
+ 128   3                  unkeyN_last = nouse_keyNum++;
+ 129   3                  break;
+ 130   3              }
+ 131   2              keyPast = keyNow;
+ 132   2              if (unkeyN_last == nouse_keyNum)
+ 133   2              {
+ 134   3                  led3_cnt = 0;
+ 135   3              }
+ 136   2              else
+ 137   2              {
+ 138   3                  led3_cnt++;
+ 139   3              }
+ 140   2          }
+ 141   1      }
+ 142          void seg_Update(void)
+ 143          {
+ 144   1          static u32 Seg_10ms = 0;
+ 145   1          if (Seg_10ms != Time_10Ms)
+ 146   1          {
+ 147   2              Seg_10ms = Time_10Ms;
+ 148   2              if (Menu == 0)
+ 149   2              {
+ 150   3                  sprintf(seg_Disp, "U    %4.2f", ADC / 100.0);
+ 151   3              }
+ 152   2              else if (Menu == 1)
+ 153   2              {
+ 154   3                  sprintf(seg_Disp, "P    %4.2f", volta_Base / 100.0);
+ 155   3              }
+ 156   2              else
+ 157   2              {
+ 158   3                  sprintf(seg_Disp, "N    %2u", break_num);
+ 159   3              }
+ 160   2              Seg_trans(seg_Disp, seg_Code);
+ 161   2          }
+ 162   1      }
+ 163          void ADC_Fuc(void)
+ 164          {
+ 165   1          u8 ucADC;
+ 166   1          float fADC;
+ 167   1          static u16 ADC_past = 0;
+ 168   1          if (!ADC_Flag)
+ 169   1          {
+ 170   2              return;
+ 171   2          }
+ 172   1          ADC_Flag = 0;
+ 173   1          ucADC = PCF8591_ADC();
+ 174   1          fADC = ucADC * 5.0 / 255; // 转换为数字量
+ 175   1          ADC = fADC * 100 + 0.5;   // 扩大100倍并进行四舍五入
+ 176   1          if (ADC_past > volta_Base && ADC <= volta_Base)
+ 177   1          {
+ 178   2              break_num++;
+ 179   2          }
+C51 COMPILER V9.52.0.0   MAIN                                                              01/05/2025 13:26:27 PAGE 4   
+
+ 180   1          if (ADC_past >= volta_Base && ADC < volta_Base)
+ 181   1          {
+ 182   2              led1_Flag = 1;
+ 183   2              breakin_Time = ISR_1Ms;
+ 184   2          }
+ 185   1          if (ADC >= volta_Base)
+ 186   1          {
+ 187   2              led1_Flag = 0;
+ 188   2          }
+ 189   1          ADC_past = ADC;
+ 190   1      }
+ 191          void LED_Fuc(void)
+ 192          {
+ 193   1          static u32 LED_10ms = 0;
+ 194   1          if (LED_10ms != Time_10Ms)
+ 195   1          {
+ 196   2              LED_10ms = Time_10Ms;
+ 197   2              /*LED1*/
+ 198   2              if (led1_Flag && (LED_10ms * 10 - breakin_Time) >= 5000)
+ 199   2              {
+ 200   3                  led_out |= 1;
+ 201   3              }
+ 202   2              else
+ 203   2              {
+ 204   3                  led_out |= 0;
+ 205   3              }
+ 206   2              /*LED2*/
+ 207   2              if (break_num % 2)
+ 208   2              {
+ 209   3                  led_out |= 1 << 1;
+ 210   3              }
+ 211   2              else
+ 212   2              {
+ 213   3                  led_out &= 0 << 1;
+ 214   3              }
+ 215   2              /*LED3*/
+ 216   2              if (led3_cnt == 3)
+ 217   2              {
+ 218   3                  led_out |= 1 << 2;
+ 219   3                  led3_cnt = 0;
+ 220   3              }
+ 221   2              else
+ 222   2              {
+ 223   3                  led_out &= 0 << 2;
+ 224   3              }
+ 225   2          }
+ 226   1          led_dis(led_out);
+ 227   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    894    ----
+   CONSTANT SIZE    =     31    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     56       6
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
