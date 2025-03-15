@@ -1,6 +1,0 @@
-"clock.obj",
-"driver.obj",
-"I2C.obj",
-"main.obj" 
-TO "frequen" 
-RAMSIZE(256) 
