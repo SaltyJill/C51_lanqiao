@@ -196,21 +196,21 @@ void URT_send(u8 *str)
 	u8 i=0;
 	while(str[i]){
 		SBUF=str[i];
-		i++;
 		while(!TI);
 		TI=0;
+		i++;
 }
 }
 void DEV_out(u8 which,u8 how)
 {
+	P0=0x00;
+	P2&=0x1F;
 	if(which){
-		P0=0x00;
-			P2&=0x1F;
 		if(how){
 			P0|=(1<<4);
 			P2=(P2&0x1F)|0xA0;
 			P2&=0x1F;
-		}
+			}
 			else{
 			P0&=~(1<<4);
 			P2=(P2&0x1F)|0xA0;

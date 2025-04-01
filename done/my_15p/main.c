@@ -23,10 +23,6 @@ u8 page = 0,
 // WAV 参数
 sbit waveP10 = P1 ^ 0;
 sbit waveP11 = P1 ^ 1;
-sbit waveP34 = P3 ^ 4;
-u8 FLAG_WAVE = 0;
-u8 FLAG_ULT = 0;
-u8 WAVE_DUTY = 0;
 s8 L_ADJ = 0;
 s16 L_PARA = 100;
 s16 LVAL = 0;
@@ -44,6 +40,12 @@ u8 TIM_Set[3] = {12, 59, 45};
 u8 FLAG_TIM = 0;
 // URT 参数
 u8 Error_D = 0;
+// PWM 参数
+sbit pwmP34 = P3 ^ 4;
+u8 WAVE_DUTY = 0;
+u8 FLAG_PWM = 0;
+u8 FLAG_ULT = 0;
+u32 PWM_STIME=0;
 // EErom
 u8 EE_D[2] = {0};
 void SEG_Fuc(void);
@@ -266,6 +268,7 @@ void V8591_Fuc(void)
 {
     static u8 DAC_O;
 		static u8 N=0;
+		float DACget;
     u8 ADCget;
     if (FLAG_8591)
     {
@@ -301,8 +304,8 @@ void V8591_Fuc(void)
         }
         else
         {
-            DAC_O = 4.0 * LVAL / (L_PARA - 40) - 160.0 / (L_PARA - 40) + 1;
-            DAC_O = DAC_O * 255 / 5;
+            DACget = 4.0 * LVAL / (L_PARA - 40) - 160.0 / (L_PARA - 40) + 1;
+            DAC_O = DACget * 255.0 / 5;
         }
         PCF8591_DAC(DAC_O);
     }
@@ -419,47 +422,7 @@ void LED_Fuc(void)
         LED_disp(LED_OUT);
     }
 }
-void URT_Fuc(void)
-{
-    static u32 waveT;
-    static u32 waveC;
-    switch (Error_D)
-    {
-    case 0:
-        break;
-    case 1:
-        URT_send("data_er");
-        break;
-    case 2:
-        URT_send("long_er");
-        break;
-    case 3:
-        URT_send("ok");
-        break;
-    }
-    if (FLAG_WAVE)
-    {
-        FLAG_WAVE = 0;
-        waveT = T1_1ms;
-        waveC = T1_1ms;
-    }
-    if (!WAVE_DUTY)
-    {
-        return;
-    }
-    if (T1_1ms - waveT < 5000)
-    {
-        if (T1_1ms - waveC > 10)
-        {
-            waveC = T1_1ms;
-            waveP34 = 0;
-        }
-        else if (T1_1ms - waveC > (WAVE_DUTY * 0.1))
-        {
-            waveP34 = 1;
-        }
-    }
-}
+
 void DEV_Fuc(void)
 {
     if (FLAG_LIGHT)
@@ -482,36 +445,63 @@ void DEV_Fuc(void)
         }
     }
 }
+void URT_Fuc(void)
+{
+		// message
+		if(Error_D){
+			switch (Error_D)
+			{
+				case 1:
+        URT_send("Error_D");
+        break;
+				case 2:
+        URT_send("Error_L");
+        break;
+				case 3:
+        URT_send("OK");
+        break;
+			}
+			Error_D=0;
+		}
+}
 void Uart_ISR(void) interrupt 4
 {
     static u8 urat[16] = {0};
     static u8 poc = 0;
-    int sc = 0;
+    int sc;
     u8 r, n;
     s16 urdate1, urdate2;
     if (RI)
     {
-        RI = 0;
+				RI = 0;
         urat[poc++] = SBUF;
         urat[poc] = 0;
         if (poc == 7)
         {
             sc = sscanf(urat, "PWM%2d%c%c", &urdate1, &r, &n);
-            if (sc == 3 && urdate1 > 0 && r == '\r' && n == '\n')
+					if(sc == 3){
+            if (r == '\r' && n == '\n'&& urdate1>0 && urdate1%10==0)
             {
-                FLAG_WAVE = 1;
-                WAVE_DUTY = urdate1;
+                FLAG_PWM = 1;
+								PWM_STIME=T1_1ms;
+                WAVE_DUTY = urdate1/10;
                 poc = 0;
                 Error_D = 3;
-            }
+            }else
+							{
+								Error_D = 1;
+                poc = 0;
+							}
+					}
         }
         else if (poc == 15)
         {
-            sc = sscanf(urat, "P1:%3d,P2:%3d%c%c", &urdate1, urdate2, &r, &n);
-            if (sc == 4 && r == '\r' && n == '\n' && urdate1 >= 60 && urdate1 <= 200 && urdate2 <= 30 && urdate2 >= -30)
+            sc = sscanf(urat, "P1:%3d,P2:%3d%c%c", &urdate1,&urdate2, &r, &n);
+					if(sc == 4){
+            if (r == '\r' && n == '\n' && urdate1 >= 60 && urdate1 <= 200 && urdate2 <= 30 && urdate2 >= -30)
             {
                 L_PARA = urdate1;
-                L_ADJ = urdate2;
+                L_ADJ =(s8)urdate2;
                 poc = 0;
                 Error_D = 3;
             }
@@ -520,6 +510,7 @@ void Uart_ISR(void) interrupt 4
                 Error_D = 1;
                 poc = 0;
             }
+					}
         }
         else if (poc > 15)
         {
@@ -530,6 +521,7 @@ void Uart_ISR(void) interrupt 4
 }
 void T1_ISR(void) interrupt 3
 {
+		static u8 PWM_cnt=0;	
     static u32 T1_100ms = 0;
     T1_1ms++;
     if (++T1_100ms == 100)
@@ -540,6 +532,23 @@ void T1_ISR(void) interrupt 3
         FLAG_TIM = 1;
         FLAG_ULT = 1;
     }
+		if(FLAG_PWM){
+			if(T1_1ms-PWM_STIME<5000){
+				if(++PWM_cnt==10)
+				{
+					PWM_cnt=0;
+					pwmP34=0;
+				}
+				else if(PWM_cnt==WAVE_DUTY) 
+				{
+					pwmP34=1;
+				}
+			}
+		else
+			{
+				FLAG_PWM=0;
+			}
+		}
     SEG_disp(SEG_CD, SEG_PO);
     SEG_PO = (++SEG_PO) & 0x07;
 }
