@@ -35,9 +35,8 @@ s16 L_MAX = 0;
 u16 TEP_VAL = 24;
 // ADC 参数
 u8 FLAG_8591 = 0;
-u8 LIGHT_V = 0;
-u8 VOTGE_V = 0;
-u16 DACG_V = 0;
+u8 chnal=0;
+u16 ADC_V[3]={0};
 // TIM 参数
 u8 TIM_NOW[3] = {0};
 u8 TIM_TRIG[3] = {0};
@@ -56,7 +55,7 @@ void WAV_Fuc(void);
 void LED_Fuc(void);
 void URT_Fuc(void);
 void DEV_Fuc(void);
-// problem: L_PARA overflow
+
 void main(void)
 {
     DEV_cls();
@@ -116,7 +115,7 @@ void SEG_Fuc(void)
             }
             else
             {
-                sprintf(SEG_DP, "F%3.2f%2.1f%2.1f", DACG_V / 100.0, LIGHT_V / 10.0, VOTGE_V / 10.0);
+                sprintf(SEG_DP, "F%3.2f%2.1f%2.1f", ADC_V[0] / 100.0, ADC_V[1] / 100.0, ADC_V[2] / 100.0);
             }
             break;
         case 1:
@@ -265,34 +264,30 @@ void TEP_Fuc(void)
 }
 void V8591_Fuc(void)
 {
-    float fADC;
     static u8 DAC_O;
+		static u8 N=0;
     u8 ADCget;
     if (FLAG_8591)
     {
         FLAG_8591 = 0;
-        // 光
-        ADCget = PCF8591_ADC(1);
-        fADC = ADCget * 5.0 / 255;
-        LIGHT_V = (fADC + 0.05) * 10;
-
-        if (LIGHT_V < 10)
-        {
-            FLAG_LIGHT = 1;
-        }
-        else
-        {
-            FLAG_LIGHT = 0;
-        }
-        // 电位器
-        ADCget = PCF8591_ADC(3);
-        fADC = ADCget * 5.0 / 255;
-        VOTGE_V = (fADC + 0.05) * 10;
-        // DAC
-        ADCget = PCF8591_ADC(0);
-        fADC = ADCget * 5.0 / 255;
-        DACG_V = (fADC + 0.005) * 100;
+        if(N==2){
+					chnal=3;
+				}else
+				{
+					chnal=N;
+				}
+				ADCget=PCF8591_ADC(chnal);
+				ADC_V[N]=(ADCget*5.0/255 +0.005)*100;
+				N=(++N)%3;
     }
+    if (ADC_V[1] < 100)
+    {
+       FLAG_LIGHT = 1;
+    }
+    else
+    {
+       FLAG_LIGHT = 0;
+    }		
     // DAC out
     if (LVAL > 0)
     {
