@@ -1,0 +1,592 @@
+C51 COMPILER V9.52.0.0   MAIN                                                              04/01/2025 15:32:09 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: D:\por-tool\Keil\C51\BIN\C51.EXE main.c LARGE BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "main.h"
+   2          #include "driver.h"
+   3          #include "iic.h"
+   4          #include "onewire.h"
+   5          #include "ds1302.h"
+   6          #include <stdio.h>
+   7          // LED 参数
+   8          u8 LED_OUT = 0;
+   9          u8 FLAG_LIGHT = 0;
+  10          u8 FLAG_L1 = 0,
+  11             FLAG_L2 = 0;
+  12          // ISR 参数
+  13          u32 T1_1ms = 0;
+  14          // SEG 参数
+  15          u8 SEG_DP[12] = "123442";
+  16          u8 SEG_CD[8] = {0};
+  17          u8 SEG_PO = 0;
+  18          u8 FLAG_SEG = 0;
+  19          u8 page = 0,
+  20             page_tpL = 0,
+  21             page_PARA = 0,
+  22             page_BACK = 0;
+  23          // WAV 参数
+  24          sbit waveP10 = P1 ^ 0;
+  25          sbit waveP11 = P1 ^ 1;
+  26          sbit waveP34 = P3 ^ 4;
+  27          u8 FLAG_WAVE = 0;
+  28          u8 FLAG_ULT = 0;
+  29          u8 WAVE_DUTY = 0;
+  30          s8 L_ADJ = 0;
+  31          s16 L_PARA = 100;
+  32          s16 LVAL = 0;
+  33          s16 L_MAX = 0;
+  34          // TEP 参数
+  35          u16 TEP_VAL = 24;
+  36          // ADC 参数
+  37          u8 FLAG_8591 = 0;
+  38          u8 LIGHT_V = 0;
+  39          u8 VOTGE_V = 0;
+  40          u16 DACG_V = 0;
+  41          // TIM 参数
+  42          u8 TIM_NOW[3] = {0};
+  43          u8 TIM_TRIG[3] = {0};
+  44          u8 TIM_Set[3] = {12, 59, 45};
+  45          u8 FLAG_TIM = 0;
+  46          // URT 参数
+  47          u8 Error_D = 0;
+  48          // EErom
+  49          u8 EE_D[2] = {0};
+  50          void SEG_Fuc(void);
+  51          void KEY_Fuc(void);
+  52          void TIM_Fuc(void);
+  53          void TEP_Fuc(void);
+  54          void V8591_Fuc(void);
+  55          void WAV_Fuc(void);
+C51 COMPILER V9.52.0.0   MAIN                                                              04/01/2025 15:32:09 PAGE 2   
+
+  56          void LED_Fuc(void);
+  57          void URT_Fuc(void);
+  58          void DEV_Fuc(void);
+  59          // problem: L_PARA overflow
+  60          void main(void)
+  61          {
+  62   1          DEV_cls();
+  63   1          T1_int();
+  64   1          T0_int();
+  65   1          URT_int();
+  66   1          DS1302_SET(TIM_Set);
+  67   1          EE_RD(EE_D, 1, 2);
+  68   1          if (EE_D[0] > 60 && EE_D[0] < 200)
+  69   1          {
+  70   2              L_PARA = EE_D[0];
+  71   2          }
+  72   1          else
+  73   1          {
+  74   2              L_PARA = 100;
+  75   2          }
+  76   1          if (EE_D[1] > -30 && EE_D[1] < 30)
+  77   1          {
+  78   2              L_ADJ = EE_D[1];
+  79   2          }
+  80   1          else
+  81   1          {
+  82   2              EE_D[1] = 0;
+  83   2              L_ADJ = EE_D[1];
+  84   2          }
+  85   1          while (1)
+  86   1          {
+  87   2              KEY_Fuc();
+  88   2              TIM_Fuc();
+  89   2              TEP_Fuc();
+  90   2              V8591_Fuc();
+  91   2              WAV_Fuc();
+  92   2              SEG_Fuc();
+  93   2              LED_Fuc();
+  94   2              URT_Fuc();
+  95   2              DEV_Fuc();
+  96   2          }
+  97   1      }
+  98          void SEG_Fuc(void)
+  99          {
+ 100   1          if (FLAG_SEG)
+ 101   1          {
+ 102   2              FLAG_SEG = 0;
+ 103   2              switch (page)
+ 104   2              {
+ 105   3              case 0:
+ 106   3                  if (!page_tpL)
+ 107   3                  {
+ 108   4                      if (LVAL > 0)
+ 109   4                      {
+ 110   5                          sprintf(SEG_DP, "F%3.1f`%3u", TEP_VAL / 10.0, (u16)LVAL);
+ 111   5                      }
+ 112   4                      else
+ 113   4                      {
+ 114   5                          sprintf(SEG_DP, "F%3.1f`LL", TEP_VAL / 10.0);
+ 115   5                      }
+ 116   4                  }
+ 117   3                  else
+C51 COMPILER V9.52.0.0   MAIN                                                              04/01/2025 15:32:09 PAGE 3   
+
+ 118   3                  {
+ 119   4                      sprintf(SEG_DP, "F%3.2f%2.1f%2.1f", DACG_V / 100.0, LIGHT_V / 10.0, VOTGE_V / 10.0);
+ 120   4                  }
+ 121   3                  break;
+ 122   3              case 1:
+ 123   3                  if (!page_PARA)
+ 124   3                  {
+ 125   4                      sprintf(SEG_DP, "P1``%4d", (u16)L_PARA);
+ 126   4                  }
+ 127   3                  else
+ 128   3                  {
+ 129   4                      sprintf(SEG_DP, "P2``%4d", (s16)L_ADJ);
+ 130   4                  }
+ 131   3                  break;
+ 132   3              case 2:
+ 133   3                  sprintf(SEG_DP, "%02u-%02u-%02u", (u16)TIM_NOW[0], (u16)TIM_NOW[1], (u16)TIM_NOW[2]);
+ 134   3                  break;
+ 135   3              case 3:
+ 136   3                  if (!page_BACK)
+ 137   3                      sprintf(SEG_DP, "HF```%3u", (u16)L_MAX);
+ 138   3                  else
+ 139   3                      sprintf(SEG_DP, "HA%2u%2u%2u", (u16)TIM_TRIG[0], (u16)TIM_TRIG[1], (u16)TIM_TRIG[2]);
+ 140   3                  break;
+ 141   3              }
+ 142   2              SEG_tran(SEG_DP, SEG_CD);
+ 143   2          }
+ 144   1      }
+ 145          void KEY_Fuc(void)
+ 146          {
+ 147   1          static u8 key_past;
+ 148   1          u8 key_now;
+ 149   1          key_now = KEY_martix();
+ 150   1          if (key_now != key_past)
+ 151   1          {
+ 152   2              switch (key_now)
+ 153   2              {
+ 154   3              case 0:
+ 155   3                  break;
+ 156   3              case 4:
+ 157   3                  page = (++page) & 0x03;
+ 158   3                  if (page == 2)
+ 159   3                  {
+ 160   4                      EE_D[0] = L_PARA;
+ 161   4                      EE_D[1] = L_ADJ;
+ 162   4                      EE_WR(EE_D, 1, 2);
+ 163   4                  }
+ 164   3                  break;
+ 165   3              case 5:
+ 166   3                  switch (page)
+ 167   3                  {
+ 168   4                  case 0:
+ 169   4                      page_tpL = !page_tpL;
+ 170   4                      break;
+ 171   4                  case 1:
+ 172   4                      page_PARA = !page_PARA;
+ 173   4                      break;
+ 174   4                  case 3:
+ 175   4                      page_BACK = !page_BACK;
+ 176   4                      break;
+ 177   4                  default:
+ 178   4                      break;
+ 179   4                  }
+C51 COMPILER V9.52.0.0   MAIN                                                              04/01/2025 15:32:09 PAGE 4   
+
+ 180   3                  break;
+ 181   3              case 8:
+ 182   3                  if (page == 1)
+ 183   3                  {
+ 184   4                      if (page_PARA)
+ 185   4                      {
+ 186   5                          L_ADJ = L_ADJ + 10;
+ 187   5                      }
+ 188   4                      else
+ 189   4                      {
+ 190   5                          L_PARA = L_PARA + 20;
+ 191   5                      }
+ 192   4                  }
+ 193   3                  if (L_PARA > 200)
+ 194   3                  {
+ 195   4                      L_PARA = 200;
+ 196   4                  }
+ 197   3                  if (L_ADJ > 30)
+ 198   3                  {
+ 199   4                      L_ADJ = 0;
+ 200   4                  }
+ 201   3                  break;
+ 202   3              case 9:
+ 203   3                  if (page == 1)
+ 204   3                  {
+ 205   4                      if (page_PARA)
+ 206   4                      {
+ 207   5                          L_ADJ = L_ADJ - 10;
+ 208   5                      }
+ 209   4                      else
+ 210   4                      {
+ 211   5                          L_PARA = L_PARA - 20;
+ 212   5                      }
+ 213   4                  }
+ 214   3                  if (L_PARA < 60)
+ 215   3                  {
+ 216   4                      L_PARA = 60;
+ 217   4                  }
+ 218   3                  if (L_ADJ < -30)
+ 219   3                  {
+ 220   4                      L_ADJ = 0;
+ 221   4                  }
+ 222   3                  break;
+ 223   3              default:
+ 224   3                  break;
+ 225   3              }
+ 226   2              key_past = key_now;
+ 227   2          }
+ 228   1      }
+ 229          void TIM_Fuc(void)
+ 230          {
+ 231   1          if (FLAG_TIM)
+ 232   1          {
+ 233   2              FLAG_TIM = 0;
+ 234   2              DS1302_RED(TIM_NOW);
+ 235   2          }
+ 236   1      }
+ 237          void TEP_Fuc(void)
+ 238          {
+ 239   1          static u32 tep_time;
+ 240   1          static u8 tep_step = 0;
+ 241   1          s16 iwd;
+C51 COMPILER V9.52.0.0   MAIN                                                              04/01/2025 15:32:09 PAGE 5   
+
+ 242   1          switch (tep_step)
+ 243   1          {
+ 244   2          case 0:
+ 245   2              DS18b20_CV();
+ 246   2              tep_time = T1_1ms;
+ 247   2              tep_step = 1;
+ 248   2              break;
+ 249   2          case 1:
+ 250   2              if (T1_1ms - tep_time > 800)
+ 251   2              {
+ 252   3                  iwd = DS18b20_RD();
+ 253   3                  TEP_VAL = (iwd / 16.0 + 0.05) * 10;
+ 254   3                  tep_step = 2;
+ 255   3                  tep_time = T1_1ms;
+ 256   3              }
+ 257   2              break;
+ 258   2          case 2:
+ 259   2              if (T1_1ms - tep_time > 5)
+ 260   2              {
+ 261   3                  tep_step = 0;
+ 262   3              }
+ 263   2              break;
+ 264   2          }
+ 265   1      }
+ 266          void V8591_Fuc(void)
+ 267          {
+ 268   1          float fADC;
+ 269   1          static u8 DAC_O;
+ 270   1          u8 ADCget;
+ 271   1          if (FLAG_8591)
+ 272   1          {
+ 273   2              FLAG_8591 = 0;
+ 274   2              // 光
+ 275   2              ADCget = PCF8591_ADC(1);
+ 276   2              fADC = ADCget * 5.0 / 255;
+ 277   2              LIGHT_V = (fADC + 0.05) * 10;
+ 278   2      
+ 279   2              if (LIGHT_V < 10)
+ 280   2              {
+ 281   3                  FLAG_LIGHT = 1;
+ 282   3              }
+ 283   2              else
+ 284   2              {
+ 285   3                  FLAG_LIGHT = 0;
+ 286   3              }
+ 287   2              // 电位器
+ 288   2              ADCget = PCF8591_ADC(3);
+ 289   2              fADC = ADCget * 5.0 / 255;
+ 290   2              VOTGE_V = (fADC + 0.05) * 10;
+ 291   2              // DAC
+ 292   2              ADCget = PCF8591_ADC(0);
+ 293   2              fADC = ADCget * 5.0 / 255;
+ 294   2              DACG_V = (fADC + 0.005) * 100;
+ 295   2          }
+ 296   1          // DAC out
+ 297   1          if (LVAL > 0)
+ 298   1          {
+ 299   2              if (LVAL <= 40)
+ 300   2              {
+ 301   3                  DAC_O = (1 * 255 / 5);
+ 302   3              }
+ 303   2              else if (LVAL >= L_PARA)
+C51 COMPILER V9.52.0.0   MAIN                                                              04/01/2025 15:32:09 PAGE 6   
+
+ 304   2              {
+ 305   3                  DAC_O = (5 * 255 / 5);
+ 306   3              }
+ 307   2              else
+ 308   2              {
+ 309   3                  DAC_O = 4.0 * LVAL / (L_PARA - 40) - 160.0 / (L_PARA - 40) + 1;
+ 310   3                  DAC_O = DAC_O * 255 / 5;
+ 311   3              }
+ 312   2              PCF8591_DAC(DAC_O);
+ 313   2          }
+ 314   1      }
+ 315          void WAV_Fuc(void)
+ 316          {
+ 317   1          u8 i = 4;
+ 318   1          u16 wave_T;
+ 319   1          if (FLAG_ULT)
+ 320   1          {
+ 321   2              FLAG_ULT = 0;
+ 322   2              TR0 = 0;
+ 323   2              TL0 = 0xF3;
+ 324   2              TH0 = 0xFF;
+ 325   2              TF0 = 0;
+ 326   2              TR0 = 1;
+ 327   2              while (i--)
+ 328   2              {
+ 329   3                  while (!TF0)
+ 330   3                      ;
+ 331   3                  TF0 = 0;
+ 332   3                  waveP10 ^= 1;
+ 333   3              }
+ 334   2              TR0 = 0;
+ 335   2              TL0 = 0x00;
+ 336   2              TH0 = 0x00;
+ 337   2              TF0 = 0;
+ 338   2              TR0 = 1;
+ 339   2              while (!TF0 && waveP11);
+ 340   2              TR0 = 0;
+ 341   2              if (TF0)
+ 342   2              {
+ 343   3                  LVAL = 255 + L_ADJ;
+ 344   3                  TF0 = 0;
+ 345   3              }
+ 346   2              else
+ 347   2              {
+ 348   3                  wave_T = (u16)TH0;
+ 349   3                  wave_T = (u16)(wave_T << 8) + TL0;
+ 350   3                  LVAL = wave_T * 0.017 + L_ADJ;
+ 351   3              }
+ 352   2              if (LVAL > 255)
+ 353   2              {
+ 354   3                  LVAL = 255;
+ 355   3              }
+ 356   2              if (LVAL < 0)
+ 357   2              {
+ 358   3                  LVAL = -10;
+ 359   3              }
+ 360   2              if (LVAL > L_MAX)
+ 361   2              {
+ 362   3                  L_MAX = LVAL;
+ 363   3                  TIM_TRIG[0] = TIM_NOW[0];
+ 364   3                  TIM_TRIG[1] = TIM_NOW[1];
+ 365   3                  TIM_TRIG[2] = TIM_NOW[2];
+C51 COMPILER V9.52.0.0   MAIN                                                              04/01/2025 15:32:09 PAGE 7   
+
+ 366   3              }
+ 367   2          }
+ 368   1      }
+ 369          void LED_Fuc(void)
+ 370          {
+ 371   1          static u8 led_past;
+ 372   1          static u32 LED_t = 0;
+ 373   1          // L8
+ 374   1          if (FLAG_LIGHT)
+ 375   1          {
+ 376   2              LED_OUT |= (u8)(1 << 7);
+ 377   2          }
+ 378   1          else
+ 379   1          {
+ 380   2              LED_OUT &= (u8) ~(1 << 7);
+ 381   2          }
+ 382   1          // Flash
+ 383   1          if ((T1_1ms - LED_t) > 200)
+ 384   1          {
+ 385   2              LED_t = T1_1ms;
+ 386   2              FLAG_L1 = !FLAG_L1;
+ 387   2              FLAG_L2 = !FLAG_L2;
+ 388   2          }
+ 389   1          // L1
+ 390   1          if (page)
+ 391   1          {
+ 392   2              LED_OUT &= (u8) ~(1);
+ 393   2          }
+ 394   1          else
+ 395   1          {
+ 396   2              if (FLAG_L1)
+ 397   2                  LED_OUT |= (u8)1;
+ 398   2              else
+ 399   2                  LED_OUT &= (u8) ~(1);
+ 400   2          }
+ 401   1          // L2
+ 402   1          if (LVAL < 0)
+ 403   1          {
+ 404   2              LED_OUT |= (u8)(1 << 1);
+ 405   2          }
+ 406   1          else
+ 407   1          {
+ 408   2              if (LVAL <= L_PARA)
+ 409   2              {
+ 410   3                  LED_OUT &= (u8) ~(1 << 1);
+ 411   3              }
+ 412   2              else
+ 413   2              {
+ 414   3                  if (FLAG_L2)
+ 415   3                      LED_OUT |= (u8)(1 << 1);
+ 416   3                  else
+ 417   3                      LED_OUT &= (u8) ~(1 << 1);
+ 418   3              }
+ 419   2          }
+ 420   1      
+ 421   1          if (LED_OUT != led_past)
+ 422   1          {
+ 423   2              led_past = LED_OUT;
+ 424   2              LED_disp(LED_OUT);
+ 425   2          }
+ 426   1      }
+ 427          void URT_Fuc(void)
+C51 COMPILER V9.52.0.0   MAIN                                                              04/01/2025 15:32:09 PAGE 8   
+
+ 428          {
+ 429   1          static u32 waveT;
+ 430   1          static u32 waveC;
+ 431   1          switch (Error_D)
+ 432   1          {
+ 433   2          case 0:
+ 434   2              break;
+ 435   2          case 1:
+ 436   2              URT_send("data_er");
+ 437   2              break;
+ 438   2          case 2:
+ 439   2              URT_send("long_er");
+ 440   2              break;
+ 441   2          case 3:
+ 442   2              URT_send("ok");
+ 443   2              break;
+ 444   2          }
+ 445   1          if (FLAG_WAVE)
+ 446   1          {
+ 447   2              FLAG_WAVE = 0;
+ 448   2              waveT = T1_1ms;
+ 449   2              waveC = T1_1ms;
+ 450   2          }
+ 451   1          if (!WAVE_DUTY)
+ 452   1          {
+ 453   2              return;
+ 454   2          }
+ 455   1          if (T1_1ms - waveT < 5000)
+ 456   1          {
+ 457   2              if (T1_1ms - waveC > 10)
+ 458   2              {
+ 459   3                  waveC = T1_1ms;
+ 460   3                  waveP34 = 0;
+ 461   3              }
+ 462   2              else if (T1_1ms - waveC > (WAVE_DUTY * 0.1))
+ 463   2              {
+ 464   3                  waveP34 = 1;
+ 465   3              }
+ 466   2          }
+ 467   1      }
+ 468          void DEV_Fuc(void)
+ 469          {
+ 470   1          if (FLAG_LIGHT)
+ 471   1          {
+ 472   2              if (LVAL > L_PARA)
+ 473   2              {
+ 474   3                  DEV_out(1, 1);
+ 475   3              }
+ 476   2              else
+ 477   2              {
+ 478   3                  DEV_out(1, 0);
+ 479   3              }
+ 480   2              if (LVAL < 0)
+ 481   2              {
+ 482   3                  DEV_out(0, 1);
+ 483   3              }
+ 484   2              else
+ 485   2              {
+ 486   3                  DEV_out(0, 0);
+ 487   3              }
+ 488   2          }
+ 489   1      }
+C51 COMPILER V9.52.0.0   MAIN                                                              04/01/2025 15:32:09 PAGE 9   
+
+ 490          void Uart_ISR(void) interrupt 4
+ 491          {
+ 492   1          static u8 urat[16] = {0};
+ 493   1          static u8 poc = 0;
+ 494   1          int sc = 0;
+ 495   1          u8 r, n;
+ 496   1          s16 urdate1, urdate2;
+ 497   1          if (RI)
+ 498   1          {
+ 499   2              RI = 0;
+ 500   2              urat[poc++] = SBUF;
+ 501   2              urat[poc] = 0;
+ 502   2              if (poc == 7)
+ 503   2              {
+ 504   3                  sc = sscanf(urat, "PWM%2d%c%c", &urdate1, &r, &n);
+ 505   3                  if (sc == 3 && urdate1 > 0 && r == '\r' && n == '\n')
+ 506   3                  {
+ 507   4                      FLAG_WAVE = 1;
+ 508   4                      WAVE_DUTY = urdate1;
+ 509   4                      poc = 0;
+ 510   4                      Error_D = 3;
+ 511   4                  }
+ 512   3              }
+ 513   2              else if (poc == 15)
+ 514   2              {
+ 515   3                  sc = sscanf(urat, "P1:%3d,P2:%3d%c%c", &urdate1, urdate2, &r, &n);
+ 516   3                  if (sc == 4 && r == '\r' && n == '\n' && urdate1 >= 60 && urdate1 <= 200 && urdate2 <= 30 && u
+             -rdate2 >= -30)
+ 517   3                  {
+ 518   4                      L_PARA = urdate1;
+ 519   4                      L_ADJ = urdate2;
+ 520   4                      poc = 0;
+ 521   4                      Error_D = 3;
+ 522   4                  }
+ 523   3                  else
+ 524   3                  {
+ 525   4                      Error_D = 1;
+ 526   4                      poc = 0;
+ 527   4                  }
+ 528   3              }
+ 529   2              else if (poc > 15)
+ 530   2              {
+ 531   3                  Error_D = 2;
+ 532   3                  poc = 0;
+ 533   3              }
+ 534   2          }
+ 535   1      }
+ 536          void T1_ISR(void) interrupt 3
+ 537          {
+ 538   1          static u32 T1_100ms = 0;
+ 539   1          T1_1ms++;
+ 540   1          if (++T1_100ms == 100)
+ 541   1          {
+ 542   2              T1_100ms = 0;
+ 543   2              FLAG_SEG = 1;
+ 544   2              FLAG_8591 = 1;
+ 545   2              FLAG_TIM = 1;
+ 546   2              FLAG_ULT = 1;
+ 547   2          }
+ 548   1          SEG_disp(SEG_CD, SEG_PO);
+ 549   1          SEG_PO = (++SEG_PO) & 0x07;
+ 550   1      }
+C51 COMPILER V9.52.0.0   MAIN                                                              04/01/2025 15:32:09 PAGE 10  
+
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   3237    ----
+   CONSTANT SIZE    =    138    ----
+   XDATA SIZE       =    105      12
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
