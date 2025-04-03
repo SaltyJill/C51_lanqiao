@@ -1,0 +1,237 @@
+C51 COMPILER V9.52.0.0   DRIVER                                                            04/03/2025 16:19:04 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE DRIVER
+OBJECT MODULE PLACED IN driver.OBJ
+COMPILER INVOKED BY: D:\por-tool\Keil\C51\BIN\C51.EXE driver.c LARGE BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "driver.h"
+   2          extern volatile u32 T1_1MS;
+   3          void DEV_Cls(void)
+   4          {
+   5   1          P0 = 0xFF;
+   6   1          P2 = (P2 & 0x1F) | 0x80;
+   7   1          P2 &= 0x1F;
+   8   1          P0 = 0x00;
+   9   1          P2 = (P2 & 0x1F) | 0xA0;
+  10   1          P2 &= 0x1F;
+  11   1      }
+  12          void T1_Int(void)
+  13          {
+  14   1          AUXR &= ~(1 << 6);
+  15   1          TMOD &= 0x0F;
+  16   1          TH1 = 0xFC;
+  17   1          TL1 = 0x18;
+  18   1          ET1 = 1;
+  19   1          EA = 1;
+  20   1          TF1 = 0;
+  21   1          TR1 = 1;
+  22   1      }
+  23          void T0_Int(void)
+  24          {
+  25   1          AUXR &= ~(1 << 7);
+  26   1          TMOD |= 0x04;
+  27   1          TH0 = 0x0;
+  28   1          TL0 = 0x0;
+  29   1          TF0 = 0;
+  30   1          TR0 = 1;
+  31   1      }
+  32          void LED_Disp(u8 LEDisp)
+  33          {
+  34   1          P0 = ~LEDisp;
+  35   1          P2 = (P2 & 0x1F) | 0x80;
+  36   1          P2 &= 0x1F;
+  37   1      }
+  38          void SEG_Tran(u8 *pSEGDisp, u8 *pSEGCode)
+  39          {
+  40   1          u8 i, j;
+  41   1          for (j = 0, i = 0; i < 8; j++, i++)
+  42   1          {
+  43   2              switch (*(pSEGDisp + j))
+  44   2              {
+  45   3              case '0':
+  46   3                  *(pSEGCode + i) = 0xC0;
+  47   3                  break;
+  48   3              case '1':
+  49   3                  *(pSEGCode + i) = 0xf9;
+  50   3                  break;
+  51   3              case '2':
+  52   3                  *(pSEGCode + i) = 0xa4;
+  53   3                  break;
+  54   3              case '3':
+  55   3                  *(pSEGCode + i) = 0xb0;
+C51 COMPILER V9.52.0.0   DRIVER                                                            04/03/2025 16:19:04 PAGE 2   
+
+  56   3                  break;
+  57   3              case '4':
+  58   3                  *(pSEGCode + i) = 0x99;
+  59   3                  break;
+  60   3              case '5':
+  61   3                  *(pSEGCode + i) = 0x92;
+  62   3                  break;
+  63   3              case '6':
+  64   3                  *(pSEGCode + i) = 0x82;
+  65   3                  break;
+  66   3              case '7':
+  67   3                  *(pSEGCode + i) = 0xf8;
+  68   3                  break;
+  69   3              case '8':
+  70   3                  *(pSEGCode + i) = 0x80;
+  71   3                  break;
+  72   3              case '9':
+  73   3                  *(pSEGCode + i) = 0x90;
+  74   3                  break;
+  75   3              case '-':
+  76   3                  *(pSEGCode + i) = 0xBF;
+  77   3                  break;
+  78   3              case 'C':
+  79   3                  *(pSEGCode + i) = 0xC6;
+  80   3                  break;
+  81   3              case 'H':
+  82   3                  *(pSEGCode + i) = 0x89;
+  83   3                  break;
+  84   3              case 'F':
+  85   3                  *(pSEGCode + i) = 0x8E;
+  86   3                  break;
+  87   3              case 'P':
+  88   3                  *(pSEGCode + i) = 0x8C;
+  89   3                  break;
+  90   3              case 'E':
+  91   3                  *(pSEGCode + i) = 0x86;
+  92   3                  break;
+  93   3              case 'A':
+  94   3                  *(pSEGCode + i) = 0x88;
+  95   3                  break;
+  96   3              case '.':
+  97   3                  if (i > 0)
+  98   3                  {
+  99   4                      i = i - 1;
+ 100   4                  }
+ 101   3                  *(pSEGCode + i) &= 0x7F;
+ 102   3                  break;
+ 103   3              default:
+ 104   3                  *(pSEGCode + i) = 0xFF;
+ 105   3                  break;
+ 106   3              }
+ 107   2          }
+ 108   1      }
+ 109          void SEG_Disp(u8 *pSEGCode, u8 SEGPosi)
+ 110          {
+ 111   1          P0 = 0xFF;
+ 112   1          P2 = (P2 & 0x1F) | 0xE0;
+ 113   1          P2 &= 0x1F;
+ 114   1      
+ 115   1          P0 = (u8)1 << SEGPosi;
+ 116   1          P2 = (P2 & 0x1F) | 0xC0;
+ 117   1          P2 &= 0x1F;
+C51 COMPILER V9.52.0.0   DRIVER                                                            04/03/2025 16:19:04 PAGE 3   
+
+ 118   1      
+ 119   1          P0 = *(pSEGCode + SEGPosi);
+ 120   1          P2 = (P2 & 0x1F) | 0xE0;
+ 121   1          P2 &= 0x1F;
+ 122   1      }
+ 123          void DELAY(u8 dct)
+ 124          {
+ 125   1          u32 Dtime;
+ 126   1          Dtime = T1_1MS;
+ 127   1          while (T1_1MS - Dtime < dct)
+ 128   1          {
+ 129   2              ;
+ 130   2          }
+ 131   1      }
+ 132          void UART_Int(void)   //9600bps@12.000MHz
+ 133          {
+ 134   1        SCON = 0x50;    
+ 135   1        AUXR |= 0x01;   
+ 136   1        AUXR |= 0x04;   
+ 137   1        T2L = 0xC7;   
+ 138   1        T2H = 0xFE;   
+ 139   1        AUXR |= 0x10;
+ 140   1        EA=1;
+ 141   1        ES=1;
+ 142   1      }
+ 143          void UART_Send(u8 *str)
+ 144          {
+ 145   1        u8 i=0;
+ 146   1        while(str[i]){
+ 147   2          SBUF=str[i];
+ 148   2          while(!TI);
+ 149   2          TI=0;
+ 150   2          i++;
+ 151   2      }
+ 152   1      }
+ 153          unsigned char KEY_Martix(void)
+ 154          {
+ 155   1          u8 RD0, RD1;
+ 156   1          u8 BTN = 0;
+ 157   1          P44 = 0;
+ 158   1          P42 = 1;
+ 159   1          RD0 = P3 & 0x0F;
+ 160   1          P44 = 1;
+ 161   1          P42 = 0;
+ 162   1          RD0 = (RD0 << 4) | (P3 & 0x0F);
+ 163   1          if (RD0 == 0x0F)
+ 164   1          {
+ 165   2              return 0;
+ 166   2          }
+ 167   1          DELAY(10);
+ 168   1          P44 = 0;
+ 169   1          P42 = 1;
+ 170   1          RD1 = P3 & 0x0F;
+ 171   1          P44 = 1;
+ 172   1          P42 = 0;
+ 173   1          RD1 = (RD1 << 4) | (P3 & 0x0F);
+ 174   1          if (RD0 == RD1)
+ 175   1          {
+ 176   2              switch (~RD1)
+ 177   2              {
+ 178   3              case 0x80:
+ 179   3                  BTN = 4;
+C51 COMPILER V9.52.0.0   DRIVER                                                            04/03/2025 16:19:04 PAGE 4   
+
+ 180   3                  break;
+ 181   3              case 0x40:
+ 182   3                  BTN = 5;
+ 183   3                  break;
+ 184   3              case 0x20:
+ 185   3                  BTN = 6;
+ 186   3                  break;
+ 187   3              case 0x10:
+ 188   3                  BTN = 7;
+ 189   3                  break;
+ 190   3              case 0x08:
+ 191   3                  BTN = 8;
+ 192   3                  break;
+ 193   3              case 0x04:
+ 194   3                  BTN = 9;
+ 195   3                  break;
+ 196   3              case 0x02:
+ 197   3                  BTN = 10;
+ 198   3                  break;
+ 199   3              case 0x01:
+ 200   3                  BTN = 11;
+ 201   3                  break;
+ 202   3              default:
+ 203   3                  BTN = 0;
+ 204   3                  break;
+ 205   3              }
+ 206   2          }
+ 207   1          return BTN;
+ 208   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1056    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----      18
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,542 @@
+C51 COMPILER V9.52.0.0   MAIN                                                              04/03/2025 16:19:05 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: D:\por-tool\Keil\C51\BIN\C51.EXE main.c LARGE BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "main.h"
+   2          #include "driver.h"
+   3          #include "iic.h"
+   4          #include "ds1302.h"
+   5          #include "ds18b20.h"
+   6          #include <stdio.h>
+   7          #include <string.h>
+   8          /*LED参数*/
+   9          u8 LED_DP = 0;
+  10          u8 flagL4 = 0;
+  11          u8 flagL5 = 0;
+  12          u8 flagL6 = 0;
+  13          /*T1中断参数*/
+  14          u32 T1_1MS = 0;
+  15          /*ADC参数*/
+  16          u8 FLAG_ADC = 0;
+  17          u8 DARK_nLIGHT = 0;
+  18          u8 TRIG_Cnt = 0;
+  19          u8 AD_ALLOW = 0;
+  20          /*SEG参数*/
+  21          u8 SEG_DP[12] = "23232", SEG_Code[8] = {0}, SEG_POSI = 0;
+  22          u8 FLAG_SEG = 0;
+  23          u8 page = 0, BACK_page = 0;
+  24          u8 TPandRH = 0, CD_3S = 0;
+  25          u8 RH_DP = 0;
+  26          /*温度与湿度参数*/
+  27          u8 FLAG_overT = 0;
+  28          u8 FLAG_FREQ = 0;
+  29          u8 FLAG_TEP = 0;
+  30          u16 TEMP_C = 0,
+  31              TEMP_P = 0,
+  32              TEMP_Max = 0,
+  33              TEMP_PARA = 300;
+  34          u16 RH = 0,
+  35              RH_P = 0,
+  36              RH_Max = 0;
+  37          u16 Freq = 0;
+  38          u32 TEMP_Sum = 0;
+  39          u32 RH_Sum = 0;
+  40          /*TIM参数*/
+  41          u8 FLAG_TIME = 0;
+  42          u8 TIME_NOW[3] = {0};
+  43          u8 TIME_Trig[2] = {0};
+  44          /*UART*/
+  45          u8 RETURN_DATE=0;
+  46          u8 FLAG_URAT=0;
+  47          void SEG_FUC(void);
+  48          void KEY_FUC(void);
+  49          void LED_FUC(void);
+  50          void ADC_FUC(void);
+  51          void TIM_FUC(void);
+  52          void TEP_FUC(void);
+  53          void FRQ_FUC(void);
+  54          void UART_FUC(void);
+  55          void main(void)
+C51 COMPILER V9.52.0.0   MAIN                                                              04/03/2025 16:19:05 PAGE 2   
+
+  56          {
+  57   1          u8 timeset[3] = {10, 59, 45};
+  58   1          DS1302_SET(timeset);
+  59   1          DEV_Cls();
+  60   1          T1_Int();
+  61   1          T0_Int();
+  62   1          UART_Int();
+  63   1          while (1)
+  64   1          {
+  65   2              ADC_FUC();
+  66   2              KEY_FUC();
+  67   2              FRQ_FUC();
+  68   2              TIM_FUC();
+  69   2              TEP_FUC();
+  70   2              SEG_FUC();
+  71   2              LED_FUC();
+  72   2              UART_FUC();
+  73   2          }
+  74   1      }
+  75          void SEG_FUC(void)
+  76          {
+  77   1          static u32 TRH = 0;
+  78   1          if (FLAG_SEG)
+  79   1          {
+  80   2              FLAG_SEG = 0;
+  81   2              if (TPandRH || CD_3S || RH_DP)
+  82   2              {
+  83   3                  if (!CD_3S)
+  84   3                  {
+  85   4                      TRH = T1_1MS;
+  86   4                      CD_3S = 1;
+  87   4                  }
+  88   3                  if (AD_ALLOW == 0)
+  89   3                  {
+  90   4                      sprintf(SEG_DP, "E``%2u-AA", (u16)TEMP_C / 10);
+  91   4                  }
+  92   3                  else
+  93   3                  {
+  94   4                      sprintf(SEG_DP, "E``%2u-%2u", (u16)TEMP_C / 10, (u16)RH / 10);
+  95   4                  }
+  96   3                  if (T1_1MS - TRH > 3000)
+  97   3                  {
+  98   4                      CD_3S = 0;
+  99   4                      RH_DP = 0;
+ 100   4                  }
+ 101   3              }
+ 102   2              else
+ 103   2              {
+ 104   3                  switch (page)
+ 105   3                  {
+ 106   4                  case 0:
+ 107   4                      sprintf(SEG_DP, "%02u-%02u-%02u", (u16)TIME_NOW[0], (u16)TIME_NOW[1], (u16)TIME_NOW[2]);
+ 108   4                      break;
+ 109   4                  case 1:
+ 110   4                      switch (BACK_page)
+ 111   4                      {
+ 112   5                      case 0:
+ 113   5                          if (TRIG_Cnt)
+ 114   5                          {
+ 115   6                              sprintf(SEG_DP, "C`%2u-%4.1f", (u16)TEMP_Max / 10, TEMP_Sum / 10.0 / TRIG_Cnt); //
+             - TRIG_Cnt);
+ 116   6                          }
+C51 COMPILER V9.52.0.0   MAIN                                                              04/03/2025 16:19:05 PAGE 3   
+
+ 117   5                          else
+ 118   5                          {
+ 119   6                              sprintf(SEG_DP, "C```````");
+ 120   6                          }
+ 121   5                          break;
+ 122   5                      case 1:
+ 123   5                          if (TRIG_Cnt)
+ 124   5                          {
+ 125   6                              sprintf(SEG_DP, "H`%2u-%4.1f", (u16)RH_Max / 10, RH_Sum / 10.0 / TRIG_Cnt); // TRI
+             -G_Cnt);
+ 126   6                          }
+ 127   5                          else
+ 128   5                          {
+ 129   6                              sprintf(SEG_DP, "H```````");
+ 130   6                          }
+ 131   5                          break;
+ 132   5                      case 2:
+ 133   5                          if (TRIG_Cnt)
+ 134   5                          {
+ 135   6                              sprintf(SEG_DP, "F%02u%02u-%02u", (u16)TRIG_Cnt, (u16)TIME_Trig[0], (u16)TIME_Trig
+             -[1]);
+ 136   6                          }
+ 137   5                          else
+ 138   5                          {
+ 139   6                              sprintf(SEG_DP, "F%02u`````", (u16)TRIG_Cnt);
+ 140   6                          }
+ 141   5                          break;
+ 142   5                      }
+ 143   4                      break;
+ 144   4                  case 2:
+ 145   4                      sprintf(SEG_DP, "E`````%2u", (u16)TEMP_PARA / 10);
+ 146   4                      break;
+ 147   4                  }
+ 148   3              }
+ 149   2              SEG_Tran(SEG_DP, SEG_Code);
+ 150   2          }
+ 151   1      }
+ 152          void KEY_FUC(void)
+ 153          {
+ 154   1          static u32 keyPt = 0;
+ 155   1          static u8 keyPast = 0;
+ 156   1          static u8 keyPflag = 0;
+ 157   1          u8 keyNow = 0;
+ 158   1          keyNow = KEY_Martix();
+ 159   1          if (keyPast != keyNow)
+ 160   1          {
+ 161   2              keyPt = T1_1MS;
+ 162   2              switch (keyNow)
+ 163   2              {
+ 164   3              case 0:
+ 165   3                  if (keyPflag)
+ 166   3                  {
+ 167   4                      keyPflag = 0;
+ 168   4                      TEMP_Sum = 0;
+ 169   4                      TEMP_Max = 0;
+ 170   4                      RH_Max = 0;
+ 171   4                      RH_Sum = 0;
+ 172   4                      TRIG_Cnt = 0;
+ 173   4                      TIME_Trig[0] = 0;
+ 174   4                      TIME_Trig[1] = 0;
+ 175   4                  }
+ 176   3                  break;
+C51 COMPILER V9.52.0.0   MAIN                                                              04/03/2025 16:19:05 PAGE 4   
+
+ 177   3              case 4:
+ 178   3                  page = (++page) % 3;
+ 179   3                  break;
+ 180   3              case 5:
+ 181   3                  if (page == 1)
+ 182   3                  {
+ 183   4                      BACK_page = (++BACK_page) % 3;
+ 184   4                  }
+ 185   3                  break;
+ 186   3              case 8:
+ 187   3                  if (TEMP_PARA == 990)
+ 188   3                  {
+ 189   4                      TEMP_PARA = 0;
+ 190   4                  }
+ 191   3                  if (page == 2)
+ 192   3                  {
+ 193   4                      TEMP_PARA += 10;
+ 194   4                  }
+ 195   3                  break;
+ 196   3              case 9:
+ 197   3                  if (TEMP_PARA == 0)
+ 198   3                  {
+ 199   4                      TEMP_PARA = 990;
+ 200   4                  }
+ 201   3                  if (page == 2)
+ 202   3                  {
+ 203   4                      TEMP_PARA -= 10;
+ 204   4                  }
+ 205   3                  break;
+ 206   3              }
+ 207   2              keyPast = keyNow;
+ 208   2          }
+ 209   1          if (T1_1MS - keyPt > 2000)
+ 210   1          {
+ 211   2              switch (keyPast)
+ 212   2              {
+ 213   3              case 9:
+ 214   3                  if (page == 1)
+ 215   3                  {
+ 216   4                      keyPflag = 1;
+ 217   4                  }
+ 218   3                  break;
+ 219   3              }
+ 220   2          }
+ 221   1      }
+ 222          void LED_FUC(void)
+ 223          {
+ 224   1          static u8 ledPast = 0;
+ 225   1          static u32 Ltime = 0;
+ 226   1          // L1,L2,L3
+ 227   1          LED_DP |= (u8)1 << page;
+ 228   1          LED_DP &= ((u8)1 << page) | 0xF8;
+ 229   1          // L4
+ 230   1          if (FLAG_overT)
+ 231   1          {
+ 232   2              if (T1_1MS - Ltime > 100)
+ 233   2              {
+ 234   3                  Ltime = T1_1MS;
+ 235   3                  flagL4 = !flagL4;
+ 236   3              }
+ 237   2              if (flagL4)
+ 238   2              {
+C51 COMPILER V9.52.0.0   MAIN                                                              04/03/2025 16:19:05 PAGE 5   
+
+ 239   3                  LED_DP |= (1 << 3);
+ 240   3              }
+ 241   2              else
+ 242   2              {
+ 243   3                  LED_DP &= ~(1 << 3);
+ 244   3              }
+ 245   2          }
+ 246   1          else
+ 247   1          {
+ 248   2              LED_DP &= ~(1 << 3);
+ 249   2          }
+ 250   1          // L5
+ 251   1          if (flagL5)
+ 252   1          {
+ 253   2              flagL5 = 0;
+ 254   2              if (AD_ALLOW)
+ 255   2              {
+ 256   3                  LED_DP &= ~(1 << 4);
+ 257   3              }
+ 258   2              else
+ 259   2              {
+ 260   3                  LED_DP |= (1 << 4);
+ 261   3              }
+ 262   2          }
+ 263   1          // L6
+ 264   1          if (flagL6)
+ 265   1          {
+ 266   2              flagL6 = 0;
+ 267   2              if (TRIG_Cnt > 1 && RH > RH_P && TEMP_C > TEMP_P)
+ 268   2              {
+ 269   3                  LED_DP |= (1 << 5);
+ 270   3              }
+ 271   2              else
+ 272   2              {
+ 273   3                  LED_DP &= ~(1 << 5);
+ 274   3              }
+ 275   2              TEMP_P = TEMP_C;
+ 276   2              RH_P = RH;
+ 277   2          }
+ 278   1          if (ledPast != LED_DP)
+ 279   1          {
+ 280   2              ledPast = LED_DP;
+ 281   2              LED_Disp(LED_DP);
+ 282   2          }
+ 283   1      }
+ 284          void ADC_FUC(void)
+ 285          {
+ 286   1          float fADC;
+ 287   1          u16 V_light;
+ 288   1          static u8 past_DL = 0;
+ 289   1          u8 ADCget;
+ 290   1          if (FLAG_ADC)
+ 291   1          {
+ 292   2              FLAG_ADC = 0;
+ 293   2              ADCget = PCF8591_ADC();
+ 294   2              fADC = ADCget * 5.0 / 255;
+ 295   2              V_light = fADC * 10;
+ 296   2              if (V_light < 10)
+ 297   2              {
+ 298   3                  DARK_nLIGHT = 1;
+ 299   3                  if (past_DL == 0)
+ 300   3                  {
+C51 COMPILER V9.52.0.0   MAIN                                                              04/03/2025 16:19:05 PAGE 6   
+
+ 301   4                      RH_DP = 1;
+ 302   4                      flagL5 = 1;
+ 303   4                      flagL6 = 1;
+ 304   4                      if (AD_ALLOW && CD_3S == 0)
+ 305   4                      {
+ 306   5                          TPandRH = 1;
+ 307   5                          FLAG_TEP = 1;
+ 308   5                          FLAG_FREQ = 1;
+ 309   5                          TRIG_Cnt++;
+ 310   5                          TIME_Trig[0] = TIME_NOW[0];
+ 311   5                          TIME_Trig[1] = TIME_NOW[1];
+ 312   5                      }
+ 313   4                      else
+ 314   4                      {
+ 315   5                          TPandRH = 0;
+ 316   5                      }
+ 317   4                  }
+ 318   3              }
+ 319   2              else
+ 320   2              {
+ 321   3                  TPandRH = 0;
+ 322   3                  DARK_nLIGHT = 0;
+ 323   3              }
+ 324   2              past_DL = DARK_nLIGHT;
+ 325   2          }
+ 326   1      }
+ 327          void TIM_FUC(void)
+ 328          {
+ 329   1          if (FLAG_TIME)
+ 330   1          {
+ 331   2              FLAG_TIME = 0;
+ 332   2              DS1302_RD(TIME_NOW);
+ 333   2          }
+ 334   1      }
+ 335          void TEP_FUC(void)
+ 336          {
+ 337   1          static u8 stepTP = 0;
+ 338   1          static u32 timeTP = 0;
+ 339   1          s16 tp = 0;
+ 340   1          switch (stepTP)
+ 341   1          {
+ 342   2          case 0:
+ 343   2              DS18B20_ST();
+ 344   2              stepTP = 1;
+ 345   2              timeTP = T1_1MS;
+ 346   2              break;
+ 347   2          case 1:
+ 348   2              if (T1_1MS - timeTP > 800)
+ 349   2              {
+ 350   3                  tp = DS18B20_RD();
+ 351   3                  TEMP_C = (tp / 16.0) * 10;
+ 352   3                  timeTP = T1_1MS;
+ 353   3                  stepTP = 2;
+ 354   3              }
+ 355   2              break;
+ 356   2          case 2:
+ 357   2              if (T1_1MS - timeTP > 5)
+ 358   2              {
+ 359   3                  stepTP = 0;
+ 360   3              }
+ 361   2          }
+ 362   1          // get
+C51 COMPILER V9.52.0.0   MAIN                                                              04/03/2025 16:19:05 PAGE 7   
+
+ 363   1          if (FLAG_TEP)
+ 364   1          {
+ 365   2              FLAG_TEP = 0;
+ 366   2              TEMP_Sum += TEMP_C;
+ 367   2              if (TEMP_C > TEMP_Max)
+ 368   2              {
+ 369   3                  TEMP_Max = TEMP_C;
+ 370   3              }
+ 371   2          }
+ 372   1          if (TEMP_C > TEMP_PARA)
+ 373   1          {
+ 374   2              FLAG_overT = 1;
+ 375   2          }
+ 376   1          else
+ 377   1          {
+ 378   2              FLAG_overT = 0;
+ 379   2          }
+ 380   1      }
+ 381          void FRQ_FUC(void)
+ 382          {
+ 383   1          if ((Freq >= 200) && (Freq <= 2000))
+ 384   1          {
+ 385   2              if (FLAG_FREQ)
+ 386   2              {
+ 387   3                  FLAG_FREQ = 0;
+ 388   3                  RH = (Freq * 2.0 / 45 + 10.0 / 9) * 10;
+ 389   3                  if (RH > RH_Max)
+ 390   3                  {
+ 391   4                      RH_Max = RH;
+ 392   4                  }
+ 393   3                  RH_Sum = RH_Sum + RH;
+ 394   3              }
+ 395   2              AD_ALLOW = 1;
+ 396   2          }
+ 397   1          else
+ 398   1          {
+ 399   2              AD_ALLOW = 0;
+ 400   2              RH = 0;
+ 401   2          }
+ 402   1      }
+ 403          void UART_FUC(void)
+ 404          {
+ 405   1        u8 send[12]={0};
+ 406   1            switch(RETURN_DATE)
+ 407   1            {
+ 408   2            case 1:
+ 409   2              sprintf(send,"%u\r\n",(u16)TRIG_Cnt);
+ 410   2              UART_Send(send);
+ 411   2              break;
+ 412   2            case 2:
+ 413   2              TEMP_Sum = 0;
+ 414   2              TEMP_Max = 0;
+ 415   2              RH_Max = 0;
+ 416   2              RH_Sum = 0;
+ 417   2              TRIG_Cnt = 0;
+ 418   2              TIME_Trig[0] = 0;
+ 419   2              TIME_Trig[1] = 0;
+ 420   2              sprintf(send,"ALL_CL\r\n");
+ 421   2              UART_Send(send);        
+ 422   2              break;
+ 423   2            case 3:
+ 424   2              sprintf(send,"PARA_DONE\r\n");
+C51 COMPILER V9.52.0.0   MAIN                                                              04/03/2025 16:19:05 PAGE 8   
+
+ 425   2              UART_Send(send);        
+ 426   2              break;
+ 427   2            case 4:
+ 428   2              sprintf(send,"PARA_ERRO\r\n");
+ 429   2              UART_Send(send);  
+ 430   2              break;
+ 431   2            }
+ 432   1            RETURN_DATE=0;
+ 433   1      }
+ 434          void UART_ISR(void) interrupt 4
+ 435          {
+ 436   1        static u8 str[9]={0};
+ 437   1        static u8 posi=0;
+ 438   1        u16 tpara,match;
+ 439   1        u8 r,n;
+ 440   1        if(RI)
+ 441   1        {
+ 442   2          RI=0;
+ 443   2          str[posi++]=SBUF;
+ 444   2          str[posi]=0;
+ 445   2          if(!strcmp(str,"Num\r\n"))
+ 446   2              {
+ 447   3                RETURN_DATE=1;
+ 448   3                posi=0;
+ 449   3              }
+ 450   2          else if(!strcmp(str,"Clr\r\n"))
+ 451   2              {
+ 452   3                RETURN_DATE=2;
+ 453   3                posi=0;
+ 454   3              }
+ 455   2          else if(posi==8)
+ 456   2          {
+ 457   3            match=sscanf(str,"Para%2d%c%c",&tpara,&r,&n);
+ 458   3            if(match==3)
+ 459   3            {
+ 460   4              if(r=='\r'&&n=='\n'&&tpara<100&&tpara>=0)
+ 461   4              {
+ 462   5                TEMP_PARA=tpara*10;
+ 463   5                RETURN_DATE=3;
+ 464   5              }
+ 465   4              else
+ 466   4              {
+ 467   5                RETURN_DATE=4;
+ 468   5              }
+ 469   4            }
+ 470   3            posi=0;
+ 471   3          }
+ 472   2        }
+ 473   1      }
+ 474          void T1_ISR(void) interrupt 3
+ 475          {
+ 476   1          static u32 T1_10MS = 0, T1_100MS = 0, T1_1S = 0;
+ 477   1          T1_1MS++;
+ 478   1          if (++T1_10MS == 10)
+ 479   1          {
+ 480   2              T1_10MS = 0;
+ 481   2              FLAG_SEG = 1;
+ 482   2          }
+ 483   1          if (++T1_100MS == 100)
+ 484   1          {
+ 485   2              T1_100MS = 0;
+ 486   2              FLAG_ADC = 1;
+C51 COMPILER V9.52.0.0   MAIN                                                              04/03/2025 16:19:05 PAGE 9   
+
+ 487   2              FLAG_TIME = 1;
+ 488   2          }
+ 489   1          if (++T1_1S == 1000)
+ 490   1          {
+ 491   2              T1_1S = 0;
+ 492   2              Freq = (u16)(TH0 << 8) | TL0;
+ 493   2              TR0 = 0;
+ 494   2              TL0 = 0x00;
+ 495   2              TH0 = 0x00;
+ 496   2              TR0 = 1;
+ 497   2          }
+ 498   1          SEG_Disp(SEG_Code, SEG_POSI);
+ 499   1          SEG_POSI = (++SEG_POSI) & 0x07;
+ 500   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2873    ----
+   CONSTANT SIZE    =    191    ----
+   XDATA SIZE       =    117      25
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
