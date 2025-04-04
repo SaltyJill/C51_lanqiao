@@ -1,0 +1,5 @@
+"driver.obj",
+"iic.obj",
+"main.obj" 
+TO "modisim" 
+RAMSIZE(256) 

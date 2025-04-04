@@ -1,0 +1,6 @@
+"driver.obj",
+"ds1302.obj",
+"main.obj",
+"onewire.obj" 
+TO "my_13" 
+RAMSIZE(256) 

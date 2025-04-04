@@ -1,0 +1,242 @@
+C51 COMPILER V9.52.0.0   MAIN                                                              02/21/2024 20:44:50 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil_C51_v5\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "main.h"
+   2          #include "tim.h"
+   3          #include "iic.h"
+   4          #include <stdio.h>
+   5          #include <string.h>
+   6          
+   7          #define somenops {_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_(); _nop_();_nop_()
+             -;_nop_();_nop_();_nop_();_nop_();}
+   8          
+   9          //#define 15nops {_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+             -_nop_();_nop_();_nop_();_nop_();}
+  10          
+  11          u8 ucLed=0;
+  12          u8 ucLed_En=1;
+  13          u8 ucMode=0;
+  14          u8 ucChIndex=0; //0-Ain1£¬1-Ain3
+  15          u8 ucAdc[2];
+  16          u8 uc10ms_Cnt=0,uc10ms_Flag=0;
+  17          u8 ucAdc_Cnt=0,ucAdc_Flag=0;
+  18          
+  19          u32 uwMs=0;
+  20          u16 uiSec=0;
+  21          u8 pucSeg_Buff[10]="12345678",pucSeg_Code[8]={0},ucSeg_Pos=0;
+  22          
+  23          u16 uiFreq=0;
+  24          u16 uiFreq_Ref;
+  25          u8 ucAdc3_Ref;
+  26          
+  27          
+  28          
+  29          void Key_Proc(void);
+  30          void Seg_Proc(void);
+  31          void Adc_Proc(void);
+  32          void Led_Proc(void);
+  33          
+  34          void main(void)
+  35          {
+  36   1        Cls_Waishe();
+  37   1        T1_Init();
+  38   1        T0_Init();
+  39   1        
+  40   1        while(1)
+  41   1        {
+  42   2          Key_Proc(); 
+  43   2          Seg_Proc();
+  44   2          
+  45   2          Adc_Proc();
+  46   2          Led_Proc();
+  47   2        }
+  48   1      }
+  49          void Key_Proc(void)
+  50          {
+  51   1        static u8 ucKey_Old=0;
+  52   1        static u32 uwMs_Key=0;
+  53   1        static u8 ucKeyPress1s=0;
+C51 COMPILER V9.52.0.0   MAIN                                                              02/21/2024 20:44:50 PAGE 2   
+
+  54   1        u8 ucKey_Now;
+  55   1        //ucKey_Now=KBD_Read();
+  56   1        ucKey_Now=BTN_Read();
+  57   1        if(ucKey_Now !=ucKey_Old)
+  58   1        {
+  59   2          uwMs_Key=uwMs;
+  60   2          switch(ucKey_Now)
+  61   2          {
+  62   3            case 0:   
+  63   3              if(ucKeyPress1s)
+  64   3              {
+  65   4                ucLed_En=!ucLed_En;
+  66   4                ucKeyPress1s=0;
+  67   4              }
+  68   3              break;
+  69   3            case 1:   //S4
+  70   3              ucMode=(++ucMode) % 3;
+  71   3              if(ucMode==2) ucChIndex=0;
+  72   3              break;
+  73   3            case 2:   //S5
+  74   3              ucChIndex=(++ucChIndex) % 2;        
+  75   3              break;
+  76   3            case 3:   //S6
+  77   3              ucAdc3_Ref=ucAdc[ucChIndex];
+  78   3              break;
+  79   3            case 4:   //S7
+  80   3              uiFreq_Ref=uiFreq;
+  81   3              break;            
+  82   3          }
+  83   2          ucKey_Old=ucKey_Now;
+  84   2        }
+  85   1        if(uwMs-uwMs_Key>=1000)
+  86   1        {
+  87   2          switch(ucKey_Old)
+  88   2          {
+  89   3            case 4:
+  90   3              ucKeyPress1s=1;
+  91   3              break;
+  92   3          }
+  93   2        }
+  94   1      }
+  95          
+  96          void Seg_Proc(void)
+  97          {
+  98   1        u8 ucChId_Seg;  
+  99   1        if(!uc10ms_Flag) return;
+ 100   1        uc10ms_Flag=0;
+ 101   1        if(!ucMode)
+ 102   1        {
+ 103   2          sprintf(pucSeg_Buff, "F%7u",(u16)uiFreq); 
+ 104   2        }
+ 105   1        else if(ucMode==1)
+ 106   1        {
+ 107   2          sprintf(pucSeg_Buff, "N%7u",(u16)1000000/uiFreq); 
+ 108   2        }
+ 109   1        else
+ 110   1        {
+ 111   2          if(!ucChIndex)
+ 112   2            ucChId_Seg=1;
+ 113   2          else
+ 114   2            ucChId_Seg=3;
+ 115   2          sprintf(pucSeg_Buff, "U-%u  %4.2f",(u16)ucChId_Seg, ucAdc[ucChIndex]*5.0/255);
+C51 COMPILER V9.52.0.0   MAIN                                                              02/21/2024 20:44:50 PAGE 3   
+
+ 116   2          //sprintf(pucSeg_Buff, "U-%u  %3u",(u16)ucChId_Seg, (u16)ucAdc[ucChIndex]);
+ 117   2        }
+ 118   1          //sprintf(pucSeg_Buff, "-%u- %4u",(u16)ucMode, (u16)usSec); 
+ 119   1          //sprintf(pucSeg_Buff, "-%u- %4u",(u16)ucMode, (u16)uiFreq);
+ 120   1          //sprintf(pucSeg_Buff, "-%u- %5.1f",(u16)ucMode, fWaveLen); 
+ 121   1          //sprintf(pucSeg_Buff, "%4u%4u",(u16)ucMem[0], (u16)ucAdc);
+ 122   1          //sprintf(pucSeg_Buff, "%02d.%02d.%02d",(unsigned int)pucTime_Now[0], (unsigned int)pucTime_Now[1],(unsi
+             -gned int)pucTime_Now[2]);
+ 123   1          //sprintf(pucSeg_Buff, "%4.1f%4u", fWendu,(u16)ucAdc);
+ 124   1          Seg_Tran(pucSeg_Buff,pucSeg_Code);  
+ 125   1        
+ 126   1      }
+ 127          void ISR_T1() interrupt 3   //1ms
+ 128          {
+ 129   1        //static u8 ucMsCnt=0;
+ 130   1        uwMs++;
+ 131   1          
+ 132   1        if(++uc10ms_Cnt==100)   //100ms
+ 133   1        {
+ 134   2          uc10ms_Cnt=0;
+ 135   2          uc10ms_Flag=1;
+ 136   2        }
+ 137   1        
+ 138   1        if(++ucAdc_Cnt==100)
+ 139   1        {
+ 140   2          ucAdc_Cnt=0;
+ 141   2          ucAdc_Flag=1;
+ 142   2        }
+ 143   1        
+ 144   1        
+ 145   1        //PWM  target:1
+ 146   1        /* P34 ^=1; */
+ 147   1        //PWM  target:2
+ 148   1        /*
+ 149   1        if(++ucMsCnt==5)
+ 150   1        {
+ 151   1          ucMsCnt=0;
+ 152   1          P34 ^=1;
+ 153   1        }*/
+ 154   1        //PWM  target:3
+ 155   1        /*
+ 156   1        if(++ucMsCnt==10) ucMsCnt=0;
+ 157   1        if(!ucMsCnt)
+ 158   1          P34=1;
+ 159   1        else if(ucMsCnt==3)
+ 160   1          P34=0;
+ 161   1        */
+ 162   1        if(uwMs % 1000==0)
+ 163   1        {
+ 164   2          uiFreq=(u16)(TH0<<8)+TL0;
+ 165   2          TR0=0;
+ 166   2          TH0=0;
+ 167   2          TL0=0;
+ 168   2          TR0=1;   
+ 169   2            
+ 170   2          //P34 Freq in Capture
+ 171   2          
+ 172   2        }
+ 173   1        Seg_Disp(pucSeg_Code,ucSeg_Pos);
+ 174   1        if(++ucSeg_Pos==8) ucSeg_Pos=0;   
+ 175   1      }
+ 176          void Adc_Proc(void)
+C51 COMPILER V9.52.0.0   MAIN                                                              02/21/2024 20:44:50 PAGE 4   
+
+ 177          {
+ 178   1        u8 ucChId_Get;  
+ 179   1        static u8 ucChIndex_Get=0;  
+ 180   1        if(!ucAdc_Flag) return;
+ 181   1        ucAdc_Flag=0;
+ 182   1        if(!ucChIndex_Get)
+ 183   1          ucChId_Get=1;
+ 184   1        else
+ 185   1          ucChId_Get=3;
+ 186   1        ucAdc[ucChIndex_Get]=PCF8591_Adc(ucChId_Get);
+ 187   1        
+ 188   1        ucChIndex_Get=!ucChIndex_Get;
+ 189   1      }
+ 190          void Led_Proc(void)
+ 191          {
+ 192   1        if(!uc10ms_Flag) return;
+ 193   1        uc10ms_Flag=0;  
+ 194   1        if(ucLed_En)
+ 195   1        {
+ 196   2          if(ucAdc[1]>ucAdc3_Ref) 
+ 197   2            ucLed |=1;
+ 198   2          else
+ 199   2            ucLed &=~1;
+ 200   2          if(uiFreq>uiFreq_Ref) 
+ 201   2            ucLed |=1<<1;
+ 202   2          else
+ 203   2            ucLed &=~(1<<1);
+ 204   2          ucLed &=~(7<<2);
+ 205   2          ucLed |=1<<(2+ucMode);    
+ 206   2        }
+ 207   1        else
+ 208   1          ucLed=0;
+ 209   1        Led_Disp(ucLed);
+ 210   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    643    ----
+   CONSTANT SIZE    =     22    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     47       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

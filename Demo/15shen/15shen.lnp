@@ -1,0 +1,6 @@
+"main.obj",
+"tim.obj",
+"ds1302.obj",
+"iic.obj" 
+TO "15shen" 
+RAMSIZE(256) 

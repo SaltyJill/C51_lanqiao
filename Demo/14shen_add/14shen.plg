@@ -1,0 +1,21 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Project:</h2>
+D:\À¶ÇÅ±­_µ¥Æ¬»ú\My_Test\14shen_add\14shen.uvproj
+Project File Date:  02/11/2024
+
+<h2>Output:</h2>
+Build target 'Target 1'
+compiling main.c...
+main.c(331): warning C280: 'uc100Cnt': unreferenced local variable
+compiling tim.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_PCF8591_DAC?IIC
+Program Size: data=27.5 xdata=225 code=10669
+creating hex file from "14shen"...
+"14shen" - 0 Error(s), 3 Warning(s).

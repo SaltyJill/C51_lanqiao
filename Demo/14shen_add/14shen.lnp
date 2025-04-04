@@ -1,0 +1,7 @@
+"main.obj",
+"tim.obj",
+"ds1302.obj",
+"iic.obj",
+"onewire.obj" 
+TO "14shen" 
+RAMSIZE(256) 

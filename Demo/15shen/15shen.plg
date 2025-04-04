@@ -1,0 +1,262 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Project:</h2>
+D:\À¶ÇÅ±­_µ¥Æ¬»ú\My_Test\15shen\15shen.uvproj
+Project File Date:  05/11/2024
+
+<h2>Output:</h2>
+Build target 'Target 1'
+compiling main.c...
+main.c(16): error C141: syntax error near 'unsigned'
+Target not created
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_LED_DISP?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=109 code=4804
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 3 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+main.c(288): error C141: syntax error near 'ucLed'
+main.c(289): error C141: syntax error near 'else'
+Target not created
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?LED_PROC?MAIN
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=4924
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 3 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=4927
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=4938
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=4929
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=4947
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+compiling tim.c...
+compiling ds1302.c...
+compiling iic.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=4929
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=4941
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=4931
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=4931
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=4931
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=4934
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=4948
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=5005
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=5020
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=5020
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=5020
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=5022
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=5033
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=5046
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=5046
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=5020
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=5057
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).
+Build target 'Target 1'
+compiling main.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_MAOPAO_FILTER?TIM
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_COMPARE_FILTER?TIM
+Program Size: data=15.1 xdata=110 code=5070
+creating hex file from "15shen"...
+"15shen" - 0 Error(s), 2 Warning(s).

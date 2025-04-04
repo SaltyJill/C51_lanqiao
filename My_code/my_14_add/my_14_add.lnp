@@ -1,0 +1,7 @@
+"driver.obj",
+"ds18b20.obj",
+"ds1302.obj",
+"iic.obj",
+"main.obj" 
+TO "my_14_add" 
+RAMSIZE(256) 

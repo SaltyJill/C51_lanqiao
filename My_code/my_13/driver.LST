@@ -1,0 +1,224 @@
+C51 COMPILER V9.52.0.0   DRIVER                                                            03/12/2025 16:13:51 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE DRIVER
+OBJECT MODULE PLACED IN driver.OBJ
+COMPILER INVOKED BY: D:\por-tool\Keil\C51\BIN\C51.EXE driver.c BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "driver.h"
+   2          extern volatile u32 T_1MS;
+   3          // LED 显示
+   4          void Led_DP(u8 out)
+   5          {
+   6   1          P0 = ~out;
+   7   1          P2 = (P2 & 0x1F) | 0x80;
+   8   1          P2 &= 0x1F;
+   9   1      }
+  10          // 关闭蜂鸣器，LED 数码管等外设
+  11          void Other_CLS(void)
+  12          {
+  13   1          /*LED close*/
+  14   1          P0 = 0xFF;
+  15   1          P2 = (P2 & 0x1F) | 0x80;
+  16   1          P2 &= 0x1F;
+  17   1          /*Speaker butter close*/
+  18   1          P0 = 0x40;
+  19   1          P2 = (P2 & 0x1F) | 0xA0;
+  20   1          P2 &= 0x1F;
+  21   1      }
+  22          // 定时器T1设置
+  23          void T1_INT(void) // 12T 12M
+  24          {
+  25   1          TMOD &= 0x0F;
+  26   1          AUXR &= ~(1 << 6);
+  27   1          TH1 = 0xFC;
+  28   1          TL1 = 0x18;
+  29   1          TF1 = 0;
+  30   1          EA = 1;
+  31   1          ET1 = 1;
+  32   1          TR1 = 1;
+  33   1      }
+  34          // 数码管显示码转换
+  35          void Seg_TR(u8 *pDisp, u8 *pCode)
+  36          {
+  37   1          u8 i, j;
+  38   1          for (i = 0, j = 0; j < 8; i++, j++)
+  39   1          {
+  40   2              switch (*(pDisp + i))
+  41   2              {
+  42   3              case '0':
+  43   3                  *(pCode + j) = 0xc0;
+  44   3                  break;
+  45   3              case '1':
+  46   3                  *(pCode + j) = 0xf9;
+  47   3                  break;
+  48   3              case '2':
+  49   3                  *(pCode + j) = 0xa4;
+  50   3                  break;
+  51   3              case '3':
+  52   3                  *(pCode + j) = 0xb0;
+  53   3                  break;
+  54   3              case '4':
+  55   3                  *(pCode + j) = 0x99;
+C51 COMPILER V9.52.0.0   DRIVER                                                            03/12/2025 16:13:51 PAGE 2   
+
+  56   3                  break;
+  57   3              case '5':
+  58   3                  *(pCode + j) = 0x92;
+  59   3                  break;
+  60   3              case '6':
+  61   3                  *(pCode + j) = 0x82;
+  62   3                  break;
+  63   3              case '7':
+  64   3                  *(pCode + j) = 0xf8;
+  65   3                  break;
+  66   3              case '8':
+  67   3                  *(pCode + j) = 0x80;
+  68   3                  break;
+  69   3              case '9':
+  70   3                  *(pCode + j) = 0x90;
+  71   3                  break;
+  72   3              case 'A':
+  73   3                  *(pCode + j) = 0x88;
+  74   3                  break;
+  75   3              case 'B':
+  76   3                  *(pCode + j) = 0x83;
+  77   3                  break;
+  78   3              case 'C':
+  79   3                  *(pCode + j) = 0xc6;
+  80   3                  break;
+  81   3              case 'D':
+  82   3                  *(pCode + j) = 0xa1;
+  83   3                  break;
+  84   3              case 'E':
+  85   3                  *(pCode + j) = 0x86;
+  86   3                  break;
+  87   3              case 'F':
+  88   3                  *(pCode + j) = 0x8e;
+  89   3                  break;
+  90   3              case 'U': // 0011 1110->1100 0001
+  91   3                  *(pCode + j) = 0xc1;
+  92   3                  break;
+  93   3              case '-':
+  94   3                  *(pCode + j) = 0xbf;
+  95   3                  break;
+  96   3              case '.':
+  97   3                  j = j - 1;
+  98   3                  *(pCode + j) &= 0x7f;
+  99   3                  break;
+ 100   3      
+ 101   3              default:
+ 102   3                  *(pCode + j) = 0xff;
+ 103   3                  break;
+ 104   3              }
+ 105   2          }
+ 106   1      }
+ 107          // 数码管显示码输出
+ 108          void Seg_DP(u8 *pCode, u8 Pos)
+ 109          {
+ 110   1          /*熄灭数据端*/
+ 111   1          P0 = 0xFF;
+ 112   1          P2 = (P2 & 0x1F) | 0xE0;
+ 113   1          P2 &= 0x1F;
+ 114   1          /*选择数码管位*/
+ 115   1          P0 = (u8)1 << Pos;
+ 116   1          P2 = (P2 & 0x1F) | 0xC0;
+ 117   1          P2 &= 0x1F;
+C51 COMPILER V9.52.0.0   DRIVER                                                            03/12/2025 16:13:51 PAGE 3   
+
+ 118   1          /*数据输出*/
+ 119   1          P0 = *(pCode + Pos);
+ 120   1          P2 = (P2 & 0x1F) | 0xE0;
+ 121   1          P2 &= 0x1F;
+ 122   1      }
+ 123          // 延时函数
+ 124          void DELAY(u16 ct)
+ 125          {
+ 126   1          u32 Tst;
+ 127   1          Tst = T_1MS;
+ 128   1          while (T_1MS - Tst < ct)
+ 129   1              ;
+ 130   1      }
+ 131          // 矩阵键盘读取
+ 132          unsigned char Key_MARTIX(void)
+ 133          {
+ 134   1          /*定义两个读取变量*/
+ 135   1          u8 key_RD0;
+ 136   1          u8 key_RD1;
+ 137   1          u8 key_NUM;
+ 138   1          P34 = 1;
+ 139   1          P35 = 0;
+ 140   1          key_RD0 = P3 & 0x0F;
+ 141   1          P34 = 0;
+ 142   1          P35 = 1;
+ 143   1          key_RD0 = (key_RD0 << 4) | (P3 & 0x0F);
+ 144   1          if (key_RD0 == 0xFF)
+ 145   1          {
+ 146   2              return 0;
+ 147   2          }
+ 148   1          DELAY(10);
+ 149   1          P34 = 1;
+ 150   1          P35 = 0;
+ 151   1          key_RD1 = P3 & 0x0F;
+ 152   1          P34 = 0;
+ 153   1          P35 = 1;
+ 154   1          key_RD1 = (key_RD1 << 4) | (P3 & 0x0F);
+ 155   1          if (key_RD1 != key_RD0)
+ 156   1          {
+ 157   2              return 0;
+ 158   2          }
+ 159   1          switch (~key_RD1)
+ 160   1          {
+ 161   2          case 0x80:
+ 162   2              key_NUM = 12;
+ 163   2              break;
+ 164   2          case 0x40:
+ 165   2              key_NUM = 13;
+ 166   2              break;
+ 167   2          case 0x08:
+ 168   2              key_NUM = 16;
+ 169   2              break;
+ 170   2          case 0x04:
+ 171   2              key_NUM = 17;
+ 172   2              break;
+ 173   2          default:
+ 174   2              key_NUM = 0;
+ 175   2              break;
+ 176   2          }
+ 177   1      
+ 178   1          return key_NUM;
+ 179   1      }
+C51 COMPILER V9.52.0.0   DRIVER                                                            03/12/2025 16:13:51 PAGE 4   
+
+ 180          // 继电器状态
+ 181          void Relay(u8 sw)
+ 182          {
+ 183   1          P0 = 0x0;
+ 184   1          P2 &= 0x1F;
+ 185   1          if (sw)
+ 186   1          {
+ 187   2              P0 |= (1 << 4);
+ 188   2          }
+ 189   1          else
+ 190   1          {
+ 191   2              P0 &= ~(1 << 4);
+ 192   2          }
+ 193   1          P2 = (P2 & 0x1F) | 0xA0;
+ 194   1          P2 &= 0x1F;
+ 195   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    768    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      14
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

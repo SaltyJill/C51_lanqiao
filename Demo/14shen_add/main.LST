@@ -1,0 +1,582 @@
+C51 COMPILER V9.52.0.0   MAIN                                                              04/04/2024 07:18:06 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil_C51_v5\C51\BIN\C51.EXE main.c LARGE BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "main.h"
+   2          #include "tim.h"
+   3          #include "iic.h"
+   4          #include "ds1302.h"
+   5          #include "onewire.h"
+   6          #include <stdio.h>
+   7          #include <string.h>
+   8          
+   9          u8 ucLed=0;
+  10          //volatile u8 ucMode=0;
+  11          u8 ucState=0;  //0,1,2,3-E
+  12          u8 ucEchoMode=0;   //0,1,2
+  13          u8 ucTrigFlag=0;
+  14          
+  15          u32 ulMs=0;
+  16          u16 usSec=0;
+  17          u8 uc1302_Cnt=0,uc1302_Flag=0;
+  18          u8 uc100_Cnt=0,ucADC_Flag=0,uc100_Flag=0;
+  19          
+  20          u8 pucSeg_Buff[10]="123456789",pucSeg_Code[8]={0},ucSeg_Pos=0;
+  21          
+  22          
+  23          u8 ucAdc=0;
+  24          u16 uiFq=0;
+  25          u16 uiHd=0,uiHd_Old=0; //*10;
+  26          u16 uiHd_Max=0;
+  27          u32 ulHd_Sum=0;
+  28          float fWd;
+  29          u16 uiWd=0,uiWd_Old=0;  //why not u8? fWendu*10
+  30          u32 ulWd_Sum=0;
+  31          u16 uiWd_Max=0;
+  32          u8 ucPara=30;
+  33          u8 ucNum=0;
+  34          u8 pucTrigTime[2]={0,0};
+  35          //DS1302
+  36          u8 pucTime_Start[3]={10,20,30};
+  37          u8 pucTime_Now[3]={10,20,30};
+  38          
+  39          u8 ucUartFlag=0;
+  40          
+  41          void Key_Proc(void);
+  42          void Seg_Proc(void);
+  43          
+  44          void Adc_Proc(void);
+  45          void Time_Proc(void);
+  46          void Led_Proc(void);
+  47          void Wd_Proc(void);
+  48          void Uart_Proc(void);
+  49          void Relay_Proc(void);
+  50          void main(void)
+  51          {
+  52   1        Cls_Waishe();
+  53   1        T1_Init();
+  54   1        T0_Init();
+  55   1        UartInit();
+C51 COMPILER V9.52.0.0   MAIN                                                              04/04/2024 07:18:06 PAGE 2   
+
+  56   1        //I2C
+  57   1          
+  58   1        Wr_Time(pucTime_Start);
+  59   1        
+  60   1        Seg_Tran(pucSeg_Buff,pucSeg_Code);
+  61   1        //UartSend("uart_6");
+  62   1        while(1)
+  63   1        {
+  64   2          Key_Proc();
+  65   2          Seg_Proc();
+  66   2          Led_Proc();
+  67   2          Adc_Proc();
+  68   2          Time_Proc();
+  69   2          Wd_Proc();
+  70   2          Uart_Proc();
+  71   2          Relay_Proc();
+  72   2        }
+  73   1      }
+  74          void Key_Proc(void)
+  75          {
+  76   1        static u8 ucKey_Old=0;
+  77   1        u8 ucKey_Now;
+  78   1        static u32 ulKey_Press=0;
+  79   1        //ucKey_Now=KBD_Read();
+  80   1        ucKey_Now=KBD_Read();
+  81   1        if(ucKey_Now !=ucKey_Old)
+  82   1        {
+  83   2          ulKey_Press=ulMs;
+  84   2          if(!ucTrigFlag)
+  85   2          {
+  86   3            switch(ucKey_Now)
+  87   3            {
+  88   4              //case 0:       
+  89   4              //  break;
+  90   4              case 1:   //S4
+  91   4                ucState=(++ucState) % 3;    //++ucState ?
+  92   4                if(ucState==1) ucEchoMode=0;
+  93   4                break;
+  94   4              case 2:   //S5
+  95   4                if(ucState==1)
+  96   4                {
+  97   5                  ucEchoMode=(++ucEchoMode) % 3;
+  98   5                }
+  99   4                break;
+ 100   4              case 3:   //S6
+ 101   4                break;
+ 102   4              case 4:   //S7    
+ 103   4                break;      
+ 104   4              case 5:   //S8
+ 105   4                if(ucState==2)
+ 106   4                {
+ 107   5                  ucPara=ucPara+1;
+ 108   5                  if(ucPara>99) ucPara=99;
+ 109   5                }
+ 110   4                break;      
+ 111   4              case 6:   //S9
+ 112   4                if(ucState==2)
+ 113   4                {
+ 114   5                  ucPara=ucPara-1;
+ 115   5                }
+ 116   4                break;      
+ 117   4            }
+C51 COMPILER V9.52.0.0   MAIN                                                              04/04/2024 07:18:06 PAGE 3   
+
+ 118   3          }
+ 119   2          ucKey_Old=ucKey_Now;
+ 120   2        }
+ 121   1        if(ulKey_Press-ulMs>=2000)
+ 122   1        {
+ 123   2          switch(ucKey_Old)
+ 124   2          {
+ 125   3            case 6:
+ 126   3              if(ucState==1 && ucEchoMode==2)
+ 127   3              {
+ 128   4                ucNum=0;
+ 129   4                ulWd_Sum=0;
+ 130   4                uiWd_Max=0;
+ 131   4                uiWd=0;   //for Led Out
+ 132   4                uiWd_Old=0;
+ 133   4                ulHd_Sum=0;
+ 134   4                uiHd_Max=0;
+ 135   4                uiHd=0;
+ 136   4                uiHd_Old=0;
+ 137   4              }
+ 138   3              break;
+ 139   3          }
+ 140   2        }
+ 141   1      }
+ 142          
+ 143          void Seg_Proc(void)
+ 144          {
+ 145   1        
+ 146   1          if(ucTrigFlag)
+ 147   1          {
+ 148   2            if(uiHd==950 || uiHd==50)     //==,=
+ 149   2              sprintf(pucSeg_Buff, "E  %2u-AA", (u16)uiWd/10);
+ 150   2            else
+ 151   2              sprintf(pucSeg_Buff, "E  %2u-%2u", (u16)uiWd/10,(u16)uiHd/10);
+ 152   2          }
+ 153   1          else
+ 154   1          {
+ 155   2            switch(ucState)
+ 156   2            {
+ 157   3              case 0:
+ 158   3                sprintf(pucSeg_Buff, "%02u-%02u-%02u", (u16)pucTime_Now[0],(u16)pucTime_Now[1],(u16)pucTime_Now[2]);
+ 159   3                break;
+ 160   3              case 1:
+ 161   3                if(!ucEchoMode)
+ 162   3                {
+ 163   4                  if(!ucNum)
+ 164   4                    sprintf(pucSeg_Buff, "C       ");
+ 165   4                  else
+ 166   4                    sprintf(pucSeg_Buff, "C %02u-%4.1f", (u16)(uiWd_Max/10),ulWd_Sum/10.0/ucNum);
+ 167   4                    //sprintf(pucSeg_Buff, "C %02u-%4.1f", (u16)uiWd,uiWd/10.0);
+ 168   4                  //sprintf(pucSeg_Buff, "C %02u-%4.1f", (u16)30,30.5);
+ 169   4                }
+ 170   3                else if(ucEchoMode==1)
+ 171   3                {
+ 172   4                  if(!ucNum)
+ 173   4                    sprintf(pucSeg_Buff, "H       ");
+ 174   4                  else
+ 175   4                    sprintf(pucSeg_Buff, "H %02u-%4.1f", (u16)(uiHd_Max/10),ulHd_Sum/10.0/ucNum);
+ 176   4                    //sprintf(pucSeg_Buff, "H %02u-%4.1f", (u16)uiHd,uiHd/10.0);  
+ 177   4                  //sprintf(pucSeg_Buff, "H %02u-%4.1f", (u16)40,40.5);
+ 178   4                }
+ 179   3                else
+C51 COMPILER V9.52.0.0   MAIN                                                              04/04/2024 07:18:06 PAGE 4   
+
+ 180   3                {
+ 181   4                  if(!ucNum)
+ 182   4                    sprintf(pucSeg_Buff, "F00     ");
+ 183   4                  else
+ 184   4                    sprintf(pucSeg_Buff, "F%02u%02u-%02u", (u16)ucNum,(u16)pucTrigTime[0],(u16)pucTrigTime[1]);
+ 185   4                }
+ 186   3                break;
+ 187   3              case 2:
+ 188   3                sprintf(pucSeg_Buff, "P     %02u", (u16)ucPara);
+ 189   3                break;
+ 190   3            }
+ 191   2          }
+ 192   1          //sprintf(pucSeg_Buff, "1234567.8");  
+ 193   1          //if(ucAdc <50)
+ 194   1            //sprintf(pucSeg_Buff, "%5.1f%4u", fWd,(u16)ucAdc); 
+ 195   1          //else
+ 196   1            //sprintf(pucSeg_Buff, "%5.1f", fWd); 
+ 197   1          
+ 198   1          //sprintf(pucSeg_Buff, "%5u%2u", uiFq,(u16)ucTrigFlag);   
+ 199   1          Seg_Tran(pucSeg_Buff,pucSeg_Code);  
+ 200   1      }
+ 201          
+ 202          void Led_Proc(void)
+ 203          {
+ 204   1        static u8 ucLed_Old=0;
+ 205   1        if(ucTrigFlag)
+ 206   1        {
+ 207   2          ucLed &=~7;
+ 208   2          ucLed |=1<<2;
+ 209   2        }
+ 210   1        else
+ 211   1        {
+ 212   2          ucLed &=~7;
+ 213   2          if(!ucState)
+ 214   2          {
+ 215   3            ucLed |=1<<0;
+ 216   3          }
+ 217   2          else if(ucState==1)
+ 218   2          {
+ 219   3            ucLed |=1<<1;
+ 220   3          }
+ 221   2        }
+ 222   1        if(uiWd>(ucPara*10))          //L4
+ 223   1          if(uc100_Flag)
+ 224   1          {
+ 225   2            uc100_Flag=0;
+ 226   2            ucLed ^=1<<3;
+ 227   2          }
+ 228   1        else
+ 229   1          ucLed &=~(1<<3);
+ 230   1        if(uiHd>=100 && uiHd<=900)    //L5
+ 231   1          ucLed &=~(1<<4);
+ 232   1        else    
+ 233   1          ucLed |=1<<4;
+ 234   1        if(ucNum>1)
+ 235   1        {
+ 236   2          if(uiWd>uiWd_Old && uiHd>uiHd_Old)
+ 237   2            ucLed |=1<<5;
+ 238   2          else
+ 239   2            ucLed &=~(1<<5);
+ 240   2        }
+ 241   1        else
+C51 COMPILER V9.52.0.0   MAIN                                                              04/04/2024 07:18:06 PAGE 5   
+
+ 242   1          ucLed &=~(1<<5);
+ 243   1        if(ucLed!=ucLed_Old)
+ 244   1        {
+ 245   2          ucLed_Old=ucLed;
+ 246   2          Led_Disp(ucLed);
+ 247   2        }
+ 248   1      }
+ 249          void Relay_Proc(void)
+ 250          {
+ 251   1        static u8 ucRly_On_Old=0;
+ 252   1        u8 ucRly_On;
+ 253   1        if(ucAdc<50)
+ 254   1          ucRly_On=1;
+ 255   1        else
+ 256   1          ucRly_On=0;
+ 257   1        if(ucRly_On!=ucRly_On_Old)
+ 258   1        {
+ 259   2          if(ucRly_On)
+ 260   2            Relay(1);
+ 261   2          else
+ 262   2            Relay(0);
+ 263   2          ucRly_On_Old=ucRly_On;
+ 264   2        }   
+ 265   1      }
+ 266          void ISR_T1() interrupt 3   //1ms
+ 267          {
+ 268   1        //static u8 ucMsCnt=0;
+ 269   1        ulMs++;
+ 270   1        
+ 271   1        if(++uc1302_Cnt==10)    //
+ 272   1        {
+ 273   2          uc1302_Cnt=0;
+ 274   2          uc1302_Flag=1;
+ 275   2        }
+ 276   1        if(++uc100_Cnt==100)    //
+ 277   1        {
+ 278   2          uc100_Cnt=0;
+ 279   2          ucADC_Flag=1;
+ 280   2          uc100_Flag=1;
+ 281   2        }
+ 282   1        /* method 2
+ 283   1        if(ulMs % 10==0)
+ 284   1          ucSeg_Flag=1;*/
+ 285   1        //if(ulMs % 10==0)   //method 3
+ 286   1        //  ulMs10++; 
+ 287   1        /*
+ 288   1        if(ulMs % 100 ==0)
+ 289   1        {
+ 290   1          ulMs100++;
+ 291   1        }*/
+ 292   1          
+ 293   1        //PWM  target:1
+ 294   1        /* P34 ^=1; */
+ 295   1        //PWM  target:2
+ 296   1        /*
+ 297   1        if(++ucMsCnt==5)
+ 298   1        {
+ 299   1          ucMsCnt=0;
+ 300   1          P34 ^=1;
+ 301   1        }*/
+ 302   1        //PWM  target:3
+ 303   1        /*
+C51 COMPILER V9.52.0.0   MAIN                                                              04/04/2024 07:18:06 PAGE 6   
+
+ 304   1        if(++ucMsCnt==10) ucMsCnt=0;
+ 305   1        if(!ucMsCnt)
+ 306   1          P34=1;
+ 307   1        else if(ucMsCnt==3)
+ 308   1          P34=0;
+ 309   1        */
+ 310   1        if(ulMs % 1000==0)
+ 311   1        {
+ 312   2          usSec++;
+ 313   2          //ucLed ^=1<<7;  //Led8
+ 314   2          //Led_Disp(ucLed);
+ 315   2          //P34 Freq in Capture
+ 316   2          
+ 317   2          uiFq=(u16)(TH0<<8)+TL0;
+ 318   2          TR0=0;
+ 319   2          TH0=0;
+ 320   2          TL0=0;
+ 321   2          TR0=1;   
+ 322   2            
+ 323   2          //P34 Freq in Capture
+ 324   2          
+ 325   2        }
+ 326   1        Seg_Disp(pucSeg_Code,ucSeg_Pos);
+ 327   1        if(++ucSeg_Pos==8) ucSeg_Pos=0;   
+ 328   1      }
+ 329          void ISR_T0(void) interrupt 1     //100us
+ 330          {
+ 331   1        static u8 uc100Cnt=0;
+ 332   1        u8 pucDuty[4]={2,3,5,8};  //based 100us,pulse width
+ 333   1        //PWM  target:4
+ 334   1        /*  
+ 335   1        if(++uc100Cnt==5)
+ 336   1        {
+ 337   1          uc100Cnt=0;
+ 338   1          P34 ^=1;
+ 339   1        }*/
+ 340   1        //PWM  target:5
+ 341   1        /*  
+ 342   1        if(++uc100Cnt==10) uc100Cnt=0;
+ 343   1        if(!uc100Cnt)
+ 344   1          P34=1;
+ 345   1        else if(uc100Cnt==4)
+ 346   1          P34=0;*/
+ 347   1        //PWM target:6
+ 348   1        /*
+ 349   1        if(++uc100Cnt==10) uc100Cnt=0;
+ 350   1        if(!uc100Cnt)
+ 351   1          P34=1;
+ 352   1        else if(uc100Cnt==pucDuty[ucMode])
+ 353   1          P34=0;*/
+ 354   1        //PWM target:7
+ 355   1        /*if(ucRun)
+ 356   1        {
+ 357   1          if(++uc100Cnt==10) uc100Cnt=0;
+ 358   1          if(!uc100Cnt)
+ 359   1            P34=1;
+ 360   1          else if(uc100Cnt==pucDuty[ucMode])
+ 361   1            P34=0;
+ 362   1        }
+ 363   1        else
+ 364   1          P34=0;
+ 365   1        */
+C51 COMPILER V9.52.0.0   MAIN                                                              04/04/2024 07:18:06 PAGE 7   
+
+ 366   1      }
+*** WARNING C280 IN LINE 331 OF main.c: 'uc100Cnt': unreferenced local variable
+ 367          void Time_Proc(void)
+ 368          {
+ 369   1        if(!uc1302_Flag) return;
+ 370   1        uc1302_Flag=0;
+ 371   1        Rd_Time(pucTime_Now); 
+ 372   1      }
+ 373          void Wd_Proc(void)
+ 374          { 
+ 375   1        static u32 ulStepBegin=0;
+ 376   1        static u8 ucStep=0;
+ 377   1        s16 sWd;
+ 378   1        
+ 379   1        switch(ucStep)
+ 380   1        {
+ 381   2          case 0:
+ 382   2            Wd_Convert();
+ 383   2            ulStepBegin=ulMs;
+ 384   2            ucStep=1;
+ 385   2            break;
+ 386   2          case 1:
+ 387   2            if(ulMs-ulStepBegin>760)    //760
+ 388   2            {       
+ 389   3              sWd=Wd_Read();
+ 390   3              fWd=sWd/16.0;
+ 391   3              ulStepBegin=ulMs;
+ 392   3              ucStep=2;
+ 393   3            }
+ 394   2            break;
+ 395   2          case 2:     
+ 396   2              if(ulMs-ulStepBegin>5)    //100 »ò10
+ 397   2              {
+ 398   3                ucStep=0;
+ 399   3              } 
+ 400   2              break;
+ 401   2        }   
+ 402   1      }
+ 403          void Adc_Proc(void)
+ 404          {
+ 405   1        static u8 pucArr[5]={0},ucArrPos=0,ucAdcTemp;
+ 406   1        static u8 ucBool_Old=0;
+ 407   1        static u32 ulTrigBegin=0;
+ 408   1        u8 ucBool;
+ 409   1        if(ucTrigFlag)
+ 410   1        {
+ 411   2          if(ulMs-ulTrigBegin>=3000)
+ 412   2            ucTrigFlag=0;
+ 413   2        }
+ 414   1        if(ucADC_Flag)
+ 415   1        {
+ 416   2          ucADC_Flag=0;
+ 417   2          //ucAdc=PCF8591_Adc();
+ 418   2          ucAdcTemp=PCF8591_Adc();
+ 419   2          pucArr[ucArrPos++]=ucAdcTemp;
+ 420   2          //if(ucArrPos==5) ucAdc=MaoPao_Filter(pucArr,5);
+ 421   2          if(ucArrPos==5) 
+ 422   2          {
+ 423   3            ucArrPos=0;
+ 424   3            ucAdc=ComPare_Filter(pucArr,5); 
+ 425   3            if(ucAdc>=50)
+ 426   3            {
+C51 COMPILER V9.52.0.0   MAIN                                                              04/04/2024 07:18:06 PAGE 8   
+
+ 427   4              ucBool=1;
+ 428   4              ucLed |=1<<7;   //debug
+ 429   4            }
+ 430   3            else
+ 431   3            {
+ 432   4              ucBool=0;
+ 433   4              ucLed &=~(1<<7);  //debug
+ 434   4            }
+ 435   3            Led_Disp(ucLed);    //debug
+ 436   3            if(!ucTrigFlag)
+ 437   3            {
+ 438   4              if(ucBool_Old && !ucBool  )
+ 439   4              {
+ 440   5                ucTrigFlag=1;
+ 441   5                ulTrigBegin=ulMs;
+ 442   5                uiWd_Old=uiWd;
+ 443   5                uiWd=fWd*10;      
+ 444   5                if(uiFq>=200 && uiFq<=2000)
+ 445   5                {
+ 446   6                    uiHd_Old=uiHd;
+ 447   6                    uiHd=(10+(uiFq-200)*80.0/1800)*10;  //valid
+ 448   6                    if(uiHd>uiHd_Max) uiHd_Max=uiHd;
+ 449   6                    ulHd_Sum +=uiHd;
+ 450   6                    if(uiWd>uiWd_Max) uiWd_Max=uiWd;
+ 451   6                    ulWd_Sum +=uiWd;
+ 452   6                    ucNum++;
+ 453   6                    pucTrigTime[0]=pucTime_Now[0];
+ 454   6                    pucTrigTime[1]=pucTime_Now[1];
+ 455   6                }
+ 456   5                else if(uiFq>2000)
+ 457   5                {
+ 458   6                    uiHd=950;    //no valid
+ 459   6                }
+ 460   5                else
+ 461   5                {
+ 462   6                    uiHd=50;      //no valid
+ 463   6                }
+ 464   5              }
+ 465   4            }   
+ 466   3            ucBool_Old=ucBool;
+ 467   3          }
+ 468   2        }
+ 469   1      }
+ 470          void ISR_Uart1(void) interrupt 4 
+ 471          {              
+ 472   1        static u8 pucRecv[9]={0};
+ 473   1        static u8 ucPos=0;
+ 474   1        u8 c1,c2;
+ 475   1        int rst;
+ 476   1        u16 x;
+ 477   1        if(RI)
+ 478   1        {
+ 479   2          RI=0;
+ 480   2          pucRecv[ucPos++]=SBUF;
+ 481   2          pucRecv[ucPos]=0;
+ 482   2          if(!strcmp(pucRecv,"Num\r\n"))
+ 483   2          {
+ 484   3            ucUartFlag=1;
+ 485   3            ucPos=0;
+ 486   3          }
+ 487   2          else if(!strcmp(pucRecv,"Clr\r\n"))
+ 488   2          {
+C51 COMPILER V9.52.0.0   MAIN                                                              04/04/2024 07:18:06 PAGE 9   
+
+ 489   3            ucNum=0;
+ 490   3            ulWd_Sum=0;
+ 491   3            uiWd_Max=0;
+ 492   3            uiWd=0;   //for Led Out
+ 493   3            uiWd_Old=0;
+ 494   3            ulHd_Sum=0;
+ 495   3            uiHd_Max=0;
+ 496   3            uiHd=0;
+ 497   3            uiHd_Old=0;
+ 498   3            
+ 499   3            ucUartFlag=2;
+ 500   3            ucPos=0;
+ 501   3          }
+ 502   2          else if(ucPos==8)   
+ 503   2          {
+ 504   3            rst=sscanf(pucRecv,"Para%2d%c%c",&x,&c1,&c2);
+ 505   3            if(rst==3)
+ 506   3            {       
+ 507   4              if(x>0 && c1=='\r' && c2=='\n')
+ 508   4              {
+ 509   5                ucPara=x;
+ 510   5                ucUartFlag=2;
+ 511   5              }
+ 512   4              else
+ 513   4                ucUartFlag=3;       
+ 514   4            }
+ 515   3            else
+ 516   3              ucUartFlag=3;
+ 517   3            ucPos=0;
+ 518   3          }
+ 519   2        }
+ 520   1      }
+ 521          void Uart_Proc(void)
+ 522          {
+ 523   1         u8 pucSend[8]={0};
+ 524   1         switch(ucUartFlag)
+ 525   1         {
+ 526   2            case 1: 
+ 527   2                sprintf(pucSend,"%u\r\n",(u16)ucNum);
+ 528   2                UartSend(pucSend);
+ 529   2                break;
+ 530   2            case 2:
+ 531   2                sprintf(pucSend,"OK\r\n");
+ 532   2                UartSend(pucSend);
+ 533   2                break;
+ 534   2            case 3:
+ 535   2                sprintf(pucSend,"ERR\r\n");
+ 536   2                UartSend(pucSend);
+ 537   2                break;
+ 538   2          }
+ 539   1         ucUartFlag=0;    
+ 540   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2811    ----
+   CONSTANT SIZE    =    167    ----
+   XDATA SIZE       =    107      18
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+C51 COMPILER V9.52.0.0   MAIN                                                              04/04/2024 07:18:06 PAGE 10  
+
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

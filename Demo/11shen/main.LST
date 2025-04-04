@@ -1,0 +1,296 @@
+C51 COMPILER V9.52.0.0   MAIN                                                              01/05/2025 16:12:05 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: D:\por-tool\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "main.h"
+   2          #include "tim.h"
+   3          
+   4          #include "iic.h"
+   5          
+   6          #include <stdio.h>
+   7          #include <string.h>
+   8          #include <math.h>
+   9          
+  10          #define somenops {_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_(); _nop_();_nop_()
+             -;_nop_();_nop_();_nop_();_nop_();}
+  11          
+  12          //#define 15nops {_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+             -_nop_();_nop_();_nop_();_nop_();}
+  13          
+  14          u8 ucLed=0;
+  15          //volatile u8 ucMode=0;
+  16          u8 ucMode=0;
+  17          u8 ucAdc_Cnt=0,ucAdc_Flag=0;
+  18          
+  19          u32 uwMs=0;
+  20          u32 uwMs10=0; 
+  21          u16 usSec=0;
+  22          u8 pucSeg_Buff[10]="12345678",pucSeg_Code[8]={0},ucSeg_Pos=0;
+  23          
+  24          //u8 ucAdc=0;   //debug
+  25          //float fAdc;   //debug
+  26          u16 uiAdc;
+  27          s16 siPar;
+  28          u8 ucNum=0;
+  29          
+  30          u8 ucKey_Num=0;   //debug
+  31          u8 ucL3_ON=0;
+  32          u8 ucL1_Flag=0;  //Adc<Para
+  33          u32 uwL1_Time=0;
+  34          void Key_Proc(void);
+  35          void Seg_Proc(void);
+  36          void Adc_Proc(void);
+  37          void Led_Proc(void);
+  38          
+  39          void main(void)
+  40          {
+  41   1        u8 ucMem;
+  42   1        Cls_Waishe();
+  43   1        T1_Init();
+  44   1        
+  45   1        EE_Read(&ucMem,0,1);
+  46   1        if(ucMem >50) ucMem=0;
+  47   1        siPar=ucMem*10;
+  48   1        
+  49   1        while(1)
+  50   1        {
+  51   2          Key_Proc();
+  52   2          Seg_Proc();
+  53   2          Adc_Proc();
+C51 COMPILER V9.52.0.0   MAIN                                                              01/05/2025 16:12:05 PAGE 2   
+
+  54   2          Led_Proc();
+  55   2        }
+  56   1      }
+  57          void Key_Proc(void)
+  58          {
+  59   1        u8 ucMem;
+  60   1        static u8 ucKey_Old=0;
+  61   1        u8 ucKey_Now;
+  62   1        u8 Key_time;
+  63   1        //static u8 ucKey_Num=0;
+  64   1        //ucKey_Now=KBD_Read();
+  65   1        ucKey_Now=KBD_Read();
+  66   1        if(ucKey_Now !=ucKey_Old)
+  67   1        {
+  68   2          Key_time=uwMs;
+  69   2          switch(ucKey_Now)
+  70   2          {
+  71   3            case 0:       
+  72   3              break;
+  73   3            case 9:       //S9
+  74   3              ucMode=(++ucMode)% 3;
+  75   3              if(ucMode==2)
+  76   3              {
+  77   4                ucMem=siPar/10;
+  78   4                EE_Write(&ucMem,0,1);
+  79   4              }
+  80   3              ucKey_Num=0;
+  81   3              ucL3_ON=0;
+  82   3              break;
+  83   3            case 10:    //S10
+  84   3              if(ucMode==2)
+  85   3              {
+  86   4                ucNum=0;
+  87   4              }
+  88   3              ucKey_Num=0;
+  89   3              ucL3_ON=0;
+  90   3              break;
+  91   3            case 13:    //S16
+  92   3              if(ucMode==1)
+  93   3              {
+  94   4                siPar +=50;
+  95   4                if(siPar>500) siPar=0;
+  96   4              }
+  97   3              ucKey_Num=0;
+  98   3              ucL3_ON=0;
+  99   3              break;
+ 100   3            case 14:    //S17
+ 101   3              if(ucMode==1)
+ 102   3              {
+ 103   4                siPar -=50;
+ 104   4                if(siPar<0) siPar=0;
+ 105   4              }
+ 106   3              ucKey_Num=0;
+ 107   3              ucL3_ON=0;
+ 108   3              break;      
+ 109   3            default:
+ 110   3              ucKey_Num++;
+ 111   3              if(ucKey_Num>=3) 
+ 112   3              {
+ 113   4                ucL3_ON=1;
+ 114   4              }
+ 115   3              break;      
+C51 COMPILER V9.52.0.0   MAIN                                                              01/05/2025 16:12:05 PAGE 3   
+
+ 116   3          }
+ 117   2          ucKey_Old=ucKey_Now;
+ 118   2        }
+ 119   1        if(uwMs-Key_time>800){
+ 120   2          switch(ucKey_Old){
+ 121   3            case 13:    //S16
+ 122   3              if(ucMode==1)
+ 123   3              {
+ 124   4                siPar +=50;
+ 125   4                if(siPar>500) siPar=0;
+ 126   4              }
+ 127   3              ucKey_Num=0;
+ 128   3              ucL3_ON=0;
+ 129   3              break;
+ 130   3            case 14:    //S17
+ 131   3              if(ucMode==1)
+ 132   3              {
+ 133   4                siPar -=50;
+ 134   4                if(siPar<0) siPar=0;
+ 135   4              }
+ 136   3              ucKey_Num=0;
+ 137   3              ucL3_ON=0;
+ 138   3              break;  
+ 139   3            }
+ 140   2        }
+ 141   1      }
+ 142          
+ 143          void Seg_Proc(void)
+ 144          {
+ 145   1        static u32 uwMs10Temp=0;    
+ 146   1        /*   method 2/3
+ 147   1        if(!ucSeg_Flag) return;
+ 148   1        ucSeg_Flag=0;*/
+ 149   1        if(uwMs10Temp !=uwMs10)   //method 3
+ 150   1        {
+ 151   2          uwMs10Temp =uwMs10;
+ 152   2          if(!ucMode)
+ 153   2          {
+ 154   3            sprintf(pucSeg_Buff, "U    %4.2f", uiAdc/100.0);
+ 155   3            //sprintf(pucSeg_Buff, "U%2u%2u%4.2f",(u16)ucKey_Num,(u16)ucL3_ON, (float)(uiAdc/100.0));
+ 156   3            //sprintf(pucSeg_Buff, "U%2u%2u", (u16)ucKey_Num,(u16)ucL3_ON);
+ 157   3            //sprintf(pucSeg_Buff, "%.3f%3u", fAdc,(u16)uiAdc);
+ 158   3          }
+ 159   2          else if(ucMode==1)
+ 160   2          {
+ 161   3            sprintf(pucSeg_Buff, "P    %4.2f", siPar/100.0);
+ 162   3          }
+ 163   2          else
+ 164   2          {
+ 165   3            sprintf(pucSeg_Buff, "N     %2u", (u16)ucNum);
+ 166   3          }
+ 167   2          //sprintf(pucSeg_Buff, "U    %3d", (u16)ucMode);
+ 168   2          Seg_Tran(pucSeg_Buff,pucSeg_Code);  
+ 169   2        }
+ 170   1      }
+ 171          void ISR_T1() interrupt 3   //1ms
+ 172          {
+ 173   1        static u8 ucMsCnt=0;
+ 174   1        uwMs++;
+ 175   1        /* method 1
+ 176   1        if(++ucSeg_Cnt==10)   //
+ 177   1        {
+C51 COMPILER V9.52.0.0   MAIN                                                              01/05/2025 16:12:05 PAGE 4   
+
+ 178   1          ucSeg_Cnt=0;
+ 179   1          ucSeg_Flag=1;
+ 180   1        }*/
+ 181   1        /* method 2
+ 182   1        if(ulMs % 10==0)
+ 183   1          ucSeg_Flag=1;*/
+ 184   1        if(uwMs % 10==0)   //method 3
+ 185   1          uwMs10++;
+ 186   1        
+ 187   1        if(++ucAdc_Cnt==100)
+ 188   1        {
+ 189   2          ucAdc_Cnt=0;
+ 190   2          ucAdc_Flag=1;
+ 191   2        }
+ 192   1        
+ 193   1        
+ 194   1        //PWM  target:1
+ 195   1        /* P34 ^=1; */
+ 196   1        //PWM  target:2
+ 197   1        /*
+ 198   1        if(++ucMsCnt==5)
+ 199   1        {
+ 200   1          ucMsCnt=0;
+ 201   1          P34 ^=1;
+ 202   1        }*/
+ 203   1        //PWM  target:3
+ 204   1        /*
+ 205   1        if(++ucMsCnt==10) ucMsCnt=0;
+ 206   1        if(!ucMsCnt)
+ 207   1          P34=1;
+ 208   1        else if(ucMsCnt==3)
+ 209   1          P34=0;
+ 210   1        */
+ 211   1        if(uwMs % 1000==0)
+ 212   1        {
+ 213   2          usSec++;
+ 214   2          
+ 215   2          
+ 216   2        }
+ 217   1        Seg_Disp(pucSeg_Code,ucSeg_Pos);
+ 218   1        if(++ucSeg_Pos==8) ucSeg_Pos=0;   
+ 219   1      }
+*** WARNING C280 IN LINE 173 OF main.c: 'ucMsCnt': unreferenced local variable
+ 220          void Adc_Proc(void)
+ 221          {
+ 222   1          u8 ucAdc;
+ 223   1          float fAdc;
+ 224   1          static u16 uiAdc_Old=0;
+ 225   1          if(!ucAdc_Flag) return;
+ 226   1          ucAdc_Flag=0;
+ 227   1          
+ 228   1          ucAdc=PCF8591_Adc();
+ 229   1          //if(ucAdc==0) ucAdc=199;
+ 230   1          fAdc=ucAdc*5.0/255;
+ 231   1          uiAdc=fAdc*100+0.5;   //自定义四舍五入
+ 232   1          if(uiAdc_Old > siPar && uiAdc<=siPar)
+ 233   1            ucNum++;
+ 234   1          if(uiAdc_Old >= siPar && uiAdc<siPar)
+ 235   1          {
+ 236   2            ucL1_Flag=1;
+ 237   2            uwL1_Time=uwMs;     
+ 238   2          }
+C51 COMPILER V9.52.0.0   MAIN                                                              01/05/2025 16:12:05 PAGE 5   
+
+ 239   1          if(uiAdc>=siPar) ucL1_Flag=0;
+ 240   1          uiAdc_Old=uiAdc;
+ 241   1      }
+ 242          void Led_Proc(void)
+ 243          {
+ 244   1        static u32 uwMs10Temp=0; 
+ 245   1        if(uwMs10Temp !=uwMs10)   //method 3
+ 246   1        {
+ 247   2          uwMs10Temp =uwMs10;
+ 248   2          if(ucL1_Flag && (uwMs-uwL1_Time)>=5000)
+ 249   2            ucLed |=1;
+ 250   2          else
+ 251   2            ucLed &=~1;
+ 252   2          if(ucNum % 2)
+ 253   2            ucLed |=1<<1;
+ 254   2          else
+ 255   2            ucLed &=~(1<<1);
+ 256   2          if(ucL3_ON)
+ 257   2            ucLed |=1<<2;
+ 258   2          else
+ 259   2            ucLed &=~(1<<2);
+ 260   2          Led_Disp(ucLed);
+ 261   2        }
+ 262   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1004    ----
+   CONSTANT SIZE    =     32    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     57       8
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

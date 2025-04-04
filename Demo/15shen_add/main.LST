@@ -1,0 +1,548 @@
+C51 COMPILER V9.52.0.0   MAIN                                                              05/22/2024 14:16:37 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil_C51_v5\C51\BIN\C51.EXE main.c LARGE BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "main.h"
+   2          #include "tim.h"
+   3          #include "ds1302.h"
+   4          #include "iic.h"
+   5          #include "onewire.h"
+   6          #include <stdio.h>
+   7          
+   8          u8 ucLed=0;
+   9          //volatile u8 ucMode=0;
+  10          u8 ucState=0;  //0,1,2,3
+  11          u8 ucMode=0;   //0,1
+  12          
+  13          
+  14          u32 ulMs=0;
+  15          
+  16          u8 uc10_Cnt=0,uc1302_Flag=0;
+  17          u8 uc100_Cnt=0,ucAdc_Flag=0,ucWave_Flag=0;
+  18          u8 uc200_Cnt=0,uc200_Flag_L1=0,uc200_Flag_L2=0;
+  19          
+  20          u8 pucSeg_Buff[10]="123456789",pucSeg_Code[8]={0},ucSeg_Pos=0;
+  21          
+  22          s16 siDist=0;   //after Jiaozheng
+  23          
+  24          u16 uiDist_Max=0;
+  25          u8 ucDist_Pf=100;
+  26          s8 scDist_Jz=0;
+  27          u8 pucTime_Trig[3]={10,20,30};
+  28          u8 ucDac=80;
+  29          u8 ucAdc0,ucAdc1,ucAdc3;  //debug
+  30          
+  31          
+  32          //DS1302
+  33          u8 pucTime_Start[3]={9,0,0};
+  34          u8 pucTime_Now[3]={10,20,30};
+  35          
+  36          float fWd=24.5;
+  37          sbit Tx_Wave=P1^0;
+  38          sbit Rx_Wave=P1^1;
+  39          s16 siDist;  
+  40          
+  41          u8 ucUartFlag=0;
+  42          u8 ucDuty=0;      //duty / 10
+  43          u32 ulMs_Duty=0;  //duty start time
+  44          u8 pucMem[3];  //ucDist_Pf,scDist_Jz, flag--1/0,  1--data saved
+  45          //u8 pucMem1[4];
+  46          
+  47          void Key_Proc(void);
+  48          void Seg_Proc1(void);
+  49          
+  50          void Dac_Proc(void);
+  51          void Time_Proc(void);
+  52          void Led_Proc(void);
+  53          void Wd_Proc(void);
+  54          void Wave_Proc(void);
+  55          void Uart_Proc(void);
+C51 COMPILER V9.52.0.0   MAIN                                                              05/22/2024 14:16:37 PAGE 2   
+
+  56          void Waishe_Proc(void);
+  57          void main(void)
+  58          {
+  59   1        //u8 pucTemp[20]={0};
+  60   1        Cls_Waishe();
+  61   1        T1_Init();
+  62   1        T0_Init();
+  63   1        UartInit();
+  64   1        //PCF8591_Write(120); 
+  65   1        Wr_Time(pucTime_Start); 
+  66   1        Delay(1000);     //very important
+  67   1        EE_Read(pucMem,0,3);  
+  68   1        
+  69   1        //sprintf(pucTemp, "[%3u,%3u,%3u,%3u]", (u16)pucMem[0],(u16)pucMem[1],(u16)pucMem[2],(u16)pucMem[3]);
+  70   1        //sprintf(pucTemp, "[%3u,%3u]", (u16)pucMem[0],(u16)pucMem[1]);
+  71   1        //UartSend(pucTemp);  
+  72   1        
+  73   1        if(pucMem[2]==1)
+  74   1        {
+  75   2          ucDist_Pf=pucMem[0];
+  76   2          scDist_Jz=(s8)pucMem[1];
+  77   2        }
+  78   1        else
+  79   1        {
+  80   2          ucDist_Pf=100;
+  81   2          scDist_Jz=0;
+  82   2          pucMem[0]=100;
+  83   2          pucMem[1]=0;
+  84   2          pucMem[2]=1;
+  85   2          Delay(10);
+  86   2          EE_Write(pucMem,0,3);
+  87   2        }
+  88   1        while(1)
+  89   1        {
+  90   2          Key_Proc();
+  91   2          Seg_Proc1();
+  92   2          Led_Proc();
+  93   2          Wave_Proc();
+  94   2          Dac_Proc();
+  95   2          Time_Proc();
+  96   2          
+  97   2          Wd_Proc();
+  98   2          Uart_Proc();
+  99   2          Waishe_Proc();
+ 100   2        }
+ 101   1      }
+ 102          void Key_Proc(void)
+ 103          {
+ 104   1        static u8 ucKey_Old=0;
+ 105   1        u8 ucKey_Now;
+ 106   1        //u8 pucTemp[20]={0};
+ 107   1        ucKey_Now=KBD_Read();
+ 108   1        if(ucKey_Now !=ucKey_Old)
+ 109   1        {
+ 110   2          switch(ucKey_Now)
+ 111   2          {
+ 112   3            //case 0:       
+ 113   3            //  break;
+ 114   3            case 1:   //S4
+ 115   3                ucState=(++ucState) % 4;    //++ucState ?
+ 116   3                if(ucState!=2) ucMode=0;
+ 117   3                break;
+C51 COMPILER V9.52.0.0   MAIN                                                              05/22/2024 14:16:37 PAGE 3   
+
+ 118   3            case 2:   //S5
+ 119   3                ucMode=!ucMode;
+ 120   3                break;
+ 121   3            case 3:   //S6
+ 122   3                break;
+ 123   3            case 4:   //S7    
+ 124   3                break;      
+ 125   3            case 5:   //S8
+ 126   3                if(ucState==1)
+ 127   3                {
+ 128   4                  if(!ucMode)
+ 129   4                  {
+ 130   5                    
+ 131   5                    ucDist_Pf +=20;
+ 132   5                    if(ucDist_Pf>200) ucDist_Pf=200;
+ 133   5                  }
+ 134   4                  else
+ 135   4                  {
+ 136   5                    scDist_Jz +=10;
+ 137   5                    if(scDist_Jz>30) scDist_Jz=30;
+ 138   5                  }
+ 139   4                  pucMem[0]=ucDist_Pf;
+ 140   4                  pucMem[1]=scDist_Jz;            
+ 141   4                  EE_Write(pucMem,0,3);
+ 142   4                  
+ 143   4                  //Delay(10);      
+ 144   4                  //EE_Read(pucMem1,1,4); 
+ 145   4                  //sprintf(pucTemp, "[%3u,%3u,%3u,%3u]", (u16)pucMem1[0],(u16)pucMem1[1],(u16)pucMem1[2],(u16)pucMem1
+             -[3]);
+ 146   4                  //UartSend(pucTemp);            
+ 147   4                }
+ 148   3                break;      
+ 149   3            case 6:   //S9
+ 150   3                if(ucState==1)
+ 151   3                {
+ 152   4                  if(!ucMode)
+ 153   4                  {
+ 154   5                    
+ 155   5                    ucDist_Pf -=20;
+ 156   5                    if(ucDist_Pf<60) ucDist_Pf=60;
+ 157   5                  }
+ 158   4                  else
+ 159   4                  {
+ 160   5                    scDist_Jz -=10;
+ 161   5                    if(scDist_Jz<-30) scDist_Jz=-30;
+ 162   5                  }
+ 163   4                  pucMem[0]=ucDist_Pf;
+ 164   4                  pucMem[1]=scDist_Jz;            
+ 165   4                  EE_Write(pucMem,0,3);
+ 166   4                  //Delay(10);
+ 167   4                  //EE_Read(pucMem1,1,4); 
+ 168   4                  //sprintf(pucTemp, "[%3u,%3u,%3u,%3u]", (u16)pucMem1[0],(u16)pucMem1[1],(u16)pucMem1[2],(u16)pucMem1
+             -[3]);
+ 169   4                  //UartSend(pucTemp);        
+ 170   4                }
+ 171   3              break;      
+ 172   3          } 
+ 173   2          ucKey_Old=ucKey_Now;
+ 174   2        }
+ 175   1        
+ 176   1      }
+ 177          
+C51 COMPILER V9.52.0.0   MAIN                                                              05/22/2024 14:16:37 PAGE 4   
+
+ 178          void Seg_Proc1(void)
+ 179          {
+ 180   1        s32 swFq2;  
+ 181   1        switch(ucState)
+ 182   1        {
+ 183   2          case 0:           
+ 184   2            if(!ucMode)
+ 185   2            {       
+ 186   3              if(siDist>=0)
+ 187   3                sprintf(pucSeg_Buff, "F%4.1f %3u", fWd,(u16)(siDist));        
+ 188   3              else
+ 189   3                sprintf(pucSeg_Buff, "F%4.1f  LL", fWd);    
+ 190   3            }
+ 191   2            else
+ 192   2              sprintf(pucSeg_Buff, "%3.1f%3u%3u",ucAdc0*3.3/255, (u16)ucAdc1,(u16)ucAdc3);
+ 193   2            break;
+ 194   2          case 1:
+ 195   2            if(!ucMode)
+ 196   2              sprintf(pucSeg_Buff, "P1   %3u", (u16)(ucDist_Pf));
+ 197   2            else
+ 198   2              sprintf(pucSeg_Buff, "P2   %3d", (s16)(scDist_Jz));
+ 199   2            break;
+ 200   2          case 2:
+ 201   2            sprintf(pucSeg_Buff, "%02u-%02u-%02u", (u16)pucTime_Now[0],(u16)pucTime_Now[1],(u16)pucTime_Now[2]);
+ 202   2            break;
+ 203   2          case 3:
+ 204   2            if(!ucMode)
+ 205   2              sprintf(pucSeg_Buff, "HF   %3u", (u16)(uiDist_Max));
+ 206   2            else
+ 207   2              sprintf(pucSeg_Buff, "HA%02u%02u%02u", (u16)pucTime_Trig[0],(u16)pucTime_Trig[1],(u16)pucTime_Trig[2])
+             -;
+ 208   2            break;
+ 209   2        }
+ 210   1        //sprintf(pucSeg_Buff, "%3u",(u16)ucAdc); 
+ 211   1          //sprintf(pucSeg_Buff, "1234567.8");  
+ 212   1          //if(ucAdc <50)
+ 213   1            //sprintf(pucSeg_Buff, "%5.1f%4u", fWd,(u16)ucAdc); 
+ 214   1          //else
+ 215   1            //sprintf(pucSeg_Buff, "%5.1f", fWd); 
+ 216   1          
+ 217   1          //sprintf(pucSeg_Buff, "%5u%2u", uiFq,(u16)ucTrigFlag);   
+ 218   1          Seg_Tran(pucSeg_Buff,pucSeg_Code);  
+ 219   1      }
+*** WARNING C280 IN LINE 180 OF main.c: 'swFq2': unreferenced local variable
+ 220          void ISR_T1() interrupt 3   //1ms
+ 221          {
+ 222   1        static u8 ucMsCnt=0;
+ 223   1        ulMs++;
+ 224   1        
+ 225   1        if(ucDuty)
+ 226   1        {
+ 227   2          if(ulMs-ulMs_Duty<=5000)
+ 228   2          {
+ 229   3            if(++ucMsCnt==10) ucMsCnt=0;
+ 230   3            if(!ucMsCnt)
+ 231   3              P34=1;
+ 232   3            else if(ucMsCnt==ucDuty)
+ 233   3              P34=0;
+ 234   3          }
+ 235   2          else
+ 236   2            ucDuty=0;
+ 237   2        } 
+C51 COMPILER V9.52.0.0   MAIN                                                              05/22/2024 14:16:37 PAGE 5   
+
+ 238   1        if(++uc10_Cnt==10)    //
+ 239   1        {
+ 240   2          uc10_Cnt=0;
+ 241   2          uc1302_Flag=1;
+ 242   2        }
+ 243   1        if(++uc100_Cnt==100)    //
+ 244   1        {
+ 245   2          uc100_Cnt=0;
+ 246   2          ucAdc_Flag=1;
+ 247   2          ucWave_Flag=1;
+ 248   2        }
+ 249   1        if(++uc200_Cnt==200)    //
+ 250   1        {
+ 251   2          uc200_Cnt=0;
+ 252   2          uc200_Flag_L1=1;
+ 253   2          uc200_Flag_L2=1;
+ 254   2        }
+ 255   1        
+ 256   1        Seg_Disp(pucSeg_Code,ucSeg_Pos);
+ 257   1        if(++ucSeg_Pos==8) ucSeg_Pos=0;   
+ 258   1      }
+ 259          void Time_Proc(void)
+ 260          {
+ 261   1        if(!uc1302_Flag) return;
+ 262   1        uc1302_Flag=0;
+ 263   1        Rd_Time(pucTime_Now); 
+ 264   1      }
+ 265          void Dac_Proc(void)
+ 266          { 
+ 267   1        static u8 pucArr[5]={0},ucArrPos=0,ucAdcTemp;
+ 268   1        static u8 ucStep=0;
+ 269   1        if(!ucAdc_Flag) return;
+ 270   1        ucAdc_Flag=0;
+ 271   1        switch(ucStep) 
+ 272   1        {   
+ 273   2          case 0:
+ 274   2            if(siDist>=0)
+ 275   2            {
+ 276   3              if(siDist>uiDist_Max)
+ 277   3              {
+ 278   4                uiDist_Max=siDist;
+ 279   4                pucTime_Trig[0]=pucTime_Now[0];
+ 280   4                pucTime_Trig[1]=pucTime_Now[1];
+ 281   4                pucTime_Trig[2]=pucTime_Now[2];
+ 282   4              }
+ 283   3              if(siDist>ucDist_Pf)
+ 284   3                ucDac=255;
+ 285   3              else if(siDist<40)
+ 286   3                ucDac=255/5;
+ 287   3              else
+ 288   3                ucDac=((siDist-40)*4/(ucDist_Pf-40)+1)*255/5;     
+ 289   3            }
+ 290   2            else
+ 291   2            {
+ 292   3              ucDac=0;
+ 293   3            }
+ 294   2            PCF8591_Write(ucDac);
+ 295   2            break;
+ 296   2          case 1:
+ 297   2            ucAdc0=PCF8591_Read(0);
+ 298   2            break;
+ 299   2          case 2:     
+C51 COMPILER V9.52.0.0   MAIN                                                              05/22/2024 14:16:37 PAGE 6   
+
+ 300   2            ucAdcTemp=PCF8591_Read(1);
+ 301   2            pucArr[ucArrPos++]=ucAdcTemp;
+ 302   2            if(ucArrPos==5) 
+ 303   2            {
+ 304   3              ucArrPos=0;
+ 305   3              ucAdc1=MaoPao_Filter(pucArr,5); 
+ 306   3            } 
+ 307   2            break;
+ 308   2          case 3:
+ 309   2            ucAdc3=PCF8591_Read(3);
+ 310   2            break;    
+ 311   2        }
+ 312   1        ucStep=(ucStep+1) %4 ;
+ 313   1      }
+ 314          void Led_Proc(void)
+ 315          {
+ 316   1        static u8 ucLed_Old=0;
+ 317   1        if(!ucState)
+ 318   1        {
+ 319   2          if(uc200_Flag_L1)
+ 320   2          {
+ 321   3            uc200_Flag_L1=0;
+ 322   3            ucLed ^=1<<0;
+ 323   3          }
+ 324   2        }
+ 325   1        else
+ 326   1          ucLed &=~(1<<0);
+ 327   1        
+ 328   1        if(siDist<0)
+ 329   1        {
+ 330   2          ucLed |=1<<1;   
+ 331   2        }
+ 332   1        else if(siDist>ucDist_Pf)   
+ 333   1        {
+ 334   2          if(uc200_Flag_L2)
+ 335   2          {
+ 336   3            uc200_Flag_L2=0;
+ 337   3            ucLed ^=1<<1;
+ 338   3          }
+ 339   2        }
+ 340   1        else
+ 341   1          ucLed &=~(1<<1);
+ 342   1        
+ 343   1        if(ucAdc1<5)
+ 344   1          ucLed |=1<<7;
+ 345   1        else
+ 346   1          ucLed &=~(1<<7);
+ 347   1        
+ 348   1        if(ucLed!=ucLed_Old)
+ 349   1        {
+ 350   2          ucLed_Old=ucLed;
+ 351   2          Led_Disp(ucLed);
+ 352   2        }
+ 353   1      }
+ 354          
+ 355          void Waishe_Proc(void)
+ 356          {
+ 357   1        static u8 ucWs_Old=0;
+ 358   1        static u8 ucWs=0;
+ 359   1        if(ucAdc1<5)
+ 360   1        {
+ 361   2          if(siDist>ucDist_Pf)
+C51 COMPILER V9.52.0.0   MAIN                                                              05/22/2024 14:16:37 PAGE 7   
+
+ 362   2            ucWs |=1<<4;
+ 363   2          else
+ 364   2            ucWs &=~(1<<4);
+ 365   2          if(siDist<0)
+ 366   2            ucWs |=1<<6;
+ 367   2          else
+ 368   2            ucWs &=~(1<<6);
+ 369   2        }
+ 370   1        if(ucWs !=ucWs_Old)
+ 371   1        {
+ 372   2          ucWs_Old=ucWs;
+ 373   2          Out_Waishe(ucWs);
+ 374   2        }
+ 375   1      }
+ 376          void Wd_Proc(void)
+ 377          { 
+ 378   1        static u32 ulStepBegin=0;
+ 379   1        static u8 ucStep=0;
+ 380   1        s16 sWd;
+ 381   1        
+ 382   1        switch(ucStep)
+ 383   1        {
+ 384   2          case 0:
+ 385   2            Wd_Convert();
+ 386   2            ulStepBegin=ulMs;
+ 387   2            ucStep=1;
+ 388   2            break;
+ 389   2          case 1:
+ 390   2            if(ulMs-ulStepBegin>760)    //760
+ 391   2            {       
+ 392   3              sWd=Wd_Read();
+ 393   3              fWd=sWd/16.0; 
+ 394   3              ulStepBegin=ulMs;
+ 395   3              ucStep=2;
+ 396   3            }
+ 397   2            break;
+ 398   2          case 2:     
+ 399   2              if(ulMs-ulStepBegin>5)    //100 »ò10
+ 400   2              {
+ 401   3                ucStep=0;
+ 402   3              } 
+ 403   2              break;
+ 404   2        }   
+ 405   1      }
+ 406          void Wave_Proc(void)
+ 407          {
+ 408   1        u8 i=4;   //or i=6
+ 409   1        u16 TH0TL0=0;
+ 410   1        if(!ucWave_Flag) return;
+ 411   1        ucWave_Flag=0;
+ 412   1      
+ 413   1        TL0=0xF4;
+ 414   1        TH0=0xFF;
+ 415   1        TF0=0;
+ 416   1        TR0=1;
+ 417   1        while(i--)
+ 418   1        {
+ 419   2          while(!TF0);
+ 420   2          TF0=0;
+ 421   2          Tx_Wave ^=1;
+ 422   2        } 
+ 423   1        TR0=0;
+C51 COMPILER V9.52.0.0   MAIN                                                              05/22/2024 14:16:37 PAGE 8   
+
+ 424   1        
+ 425   1        TL0=0;
+ 426   1        TH0=0;
+ 427   1        TF0=0;
+ 428   1        TR0=1;
+ 429   1        while(!TF0 && Rx_Wave);
+ 430   1        TR0=0;
+ 431   1        if(TF0)
+ 432   1        {
+ 433   2          TF0=0;  
+ 434   2          siDist=255+scDist_Jz;   //ok  
+ 435   2        }
+ 436   1        else
+ 437   1        {
+ 438   2          TH0TL0=(u16)TH0;
+ 439   2          TH0TL0=(u16)(TH0TL0<<8) + TL0;          
+ 440   2          siDist=TH0TL0*0.017+scDist_Jz;      //ok  
+ 441   2        }   
+ 442   1      }   
+ 443          void ISR_Uart1(void) interrupt 4 
+ 444          {              
+ 445   1        static u8 pucRecv[16]={0};
+ 446   1        static u8 ucPos=0;
+ 447   1        u8 c1,c2;
+ 448   1        int rst;
+ 449   1        s16 x,y;
+ 450   1        if(RI)
+ 451   1        {
+ 452   2          RI=0;
+ 453   2          pucRecv[ucPos++]=SBUF;
+ 454   2          pucRecv[ucPos]=0;
+ 455   2          if(ucPos==7)  //  "PWM20\r\n"
+ 456   2          {
+ 457   3            rst=sscanf(pucRecv,"PWM%2d%c%c",&x,&c1,&c2);
+ 458   3            if(rst==3)
+ 459   3            {
+ 460   4              if(x>0 && x %10 ==0 && c1=='\r' && c2=='\n')
+ 461   4              {
+ 462   5                ucUartFlag=1;
+ 463   5                ucDuty=x/10;   
+ 464   5                ulMs_Duty=ulMs;
+ 465   5                ucPos=0;
+ 466   5              }       
+ 467   4            } 
+ 468   3          }   
+ 469   2          else if(ucPos==15)   //"P1:100,P2:-30\r\n"
+ 470   2          {
+ 471   3            rst=sscanf(pucRecv,"P1:%3d,P2:%3d%c%c",&x,&y,&c1,&c2);
+ 472   3            if(rst==4)
+ 473   3            {       
+ 474   4              if(x>=60 && x<=200 && y>=-30 && y<=30 && c1=='\r' && c2=='\n')
+ 475   4              {
+ 476   5                ucDist_Pf=x;
+ 477   5                scDist_Jz=y;
+ 478   5                ucUartFlag=1;
+ 479   5              }
+ 480   4              else
+ 481   4                ucUartFlag=3;       
+ 482   4            }
+ 483   3            else
+ 484   3              ucUartFlag=2;
+ 485   3            ucPos=0;
+C51 COMPILER V9.52.0.0   MAIN                                                              05/22/2024 14:16:37 PAGE 9   
+
+ 486   3          }
+ 487   2        }
+ 488   1      }
+ 489          
+ 490          void Uart_Proc(void)
+ 491          {   
+ 492   1         switch(ucUartFlag)
+ 493   1         {
+ 494   2            case 1:           
+ 495   2                UartSend("Ok1");
+ 496   2                break;     
+ 497   2            case 2:           
+ 498   2                UartSend("Err2");
+ 499   2                break;    
+ 500   2            case 3:           
+ 501   2                UartSend("Err3");
+ 502   2                break;          
+ 503   2          }
+ 504   1         ucUartFlag=0;    
+ 505   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2547    ----
+   CONSTANT SIZE    =    134    ----
+   XDATA SIZE       =    101      13
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

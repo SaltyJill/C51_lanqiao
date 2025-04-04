@@ -1,0 +1,179 @@
+C51 COMPILER V9.52.0.0   DRIVER                                                            03/17/2025 19:30:02 PAGE 1   
+
+
+C51 COMPILER V9.52.0.0, COMPILATION OF MODULE DRIVER
+OBJECT MODULE PLACED IN driver.OBJ
+COMPILER INVOKED BY: D:\por-tool\Keil\C51\BIN\C51.EXE driver.c BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "driver.h"
+   2          extern volatile u32 ISR_T1;
+   3          void led_Disp(u8 ledD)
+   4          {
+   5   1          P0 = ~ledD;
+   6   1          P2 = (P2 & 0x1F) | 0x80;
+   7   1          P2 &= 0x1F;
+   8   1      }
+   9          void dev_Cls(void)
+  10          {
+  11   1          P0 = 0xFF;
+  12   1          P2 = (P2 & 0x1F) | 0x80;
+  13   1          P2 &= 0x1F;
+  14   1          P0 = 0x00;
+  15   1          P2 = (P2 & 0x1F) | 0xA0;
+  16   1          P2 &= 0x1F;
+  17   1      }
+  18          void T1_int(void)
+  19          {
+  20   1          AUXR &= ~(1 << 6);
+  21   1          TMOD &= 0x0F;
+  22   1          TH1 = 0xFC;
+  23   1          TL1 = 0x18;
+  24   1          TF1 = 0;
+  25   1          EA = 1;
+  26   1          ET1 = 1;
+  27   1          TR1 = 1;
+  28   1      }
+  29          void seg_Tran(u8 *pseg_Disp, u8 *pseg_Code)
+  30          {
+  31   1          u8 i, j;
+  32   1          for (j = 0, i = 0; j < 8; i++, j++)
+  33   1          {
+  34   2              switch (*(pseg_Disp + i))
+  35   2              {
+  36   3              case '0':
+  37   3                  *(pseg_Code + j) = 0xC0;
+  38   3                  break;
+  39   3              case '1':
+  40   3                  *(pseg_Code + j) = 0xF9;
+  41   3                  break;
+  42   3              case '2':
+  43   3                  *(pseg_Code + j) = 0xA4;
+  44   3                  break;
+  45   3              case '3':
+  46   3                  *(pseg_Code + j) = 0xB0;
+  47   3                  break;
+  48   3              case '4':
+  49   3                  *(pseg_Code + j) = 0x99;
+  50   3                  break;
+  51   3              case '5':
+  52   3                  *(pseg_Code + j) = 0x92;
+  53   3                  break;
+  54   3              case '6':
+  55   3                  *(pseg_Code + j) = 0x82;
+C51 COMPILER V9.52.0.0   DRIVER                                                            03/17/2025 19:30:02 PAGE 2   
+
+  56   3                  break;
+  57   3              case '7':
+  58   3                  *(pseg_Code + j) = 0xF8;
+  59   3                  break;
+  60   3              case '8':
+  61   3                  *(pseg_Code + j) = 0x80;
+  62   3                  break;
+  63   3              case '9':
+  64   3                  *(pseg_Code + j) = 0x90;
+  65   3                  break;
+  66   3              case 'U':
+  67   3                  *(pseg_Code + j) = 0xC1;
+  68   3                  break;
+  69   3              case 'P':
+  70   3                  *(pseg_Code + j) = 0x8C;
+  71   3                  break;
+  72   3              case 'N':
+  73   3                  *(pseg_Code + j) = 0xAB;
+  74   3                  break;
+  75   3              case '.':
+  76   3                  if (j > 0)
+  77   3                  {
+  78   4                      j--;
+  79   4                  }
+  80   3                  *(pseg_Code + j) &= 0x7F;
+  81   3                  break;
+  82   3              default:
+  83   3                  *(pseg_Code + j) = 0xFF;
+  84   3                  break;
+  85   3              }
+  86   2          }
+  87   1      }
+  88          void seg_Disp(u8 *pseg_Code, u8 segPos)
+  89          {
+  90   1          P0 = 0xFF;
+  91   1          P2 = (P2 & 0x1F) | 0xE0;
+  92   1          P2 &= 0x1F;
+  93   1          P0 = (u8)1 << segPos;
+  94   1          P2 = (P2 & 0x1F) | 0xC0;
+  95   1          P2 &= 0x1F;
+  96   1          P0 = *(pseg_Code + segPos);
+  97   1          P2 = (P2 & 0x1F) | 0xE0;
+  98   1          P2 &= 0x1F;
+  99   1      }
+ 100          void DELAY(u8 Dms)
+ 101          {
+ 102   1          u32 DelayT;
+ 103   1          DelayT = ISR_T1;
+ 104   1          while ((ISR_T1 - DelayT) < Dms)
+ 105   1          {
+ 106   2              ;
+ 107   2          }
+ 108   1      }
+ 109          unsigned char key_Martix(void)
+ 110          {
+ 111   1          u8 keyRD0, keyRD1;
+ 112   1          u8 btN=0;
+ 113   1          P35 = 0;
+ 114   1          P34 = 1;
+ 115   1          keyRD0 = (P3 & 0x0F);
+ 116   1          P35 = 1;
+ 117   1          P34 = 0;
+C51 COMPILER V9.52.0.0   DRIVER                                                            03/17/2025 19:30:02 PAGE 3   
+
+ 118   1          keyRD0 = (keyRD0 << 4) | (P3 & 0x0F);
+ 119   1          if (keyRD0 == 0xFF)
+ 120   1          {
+ 121   2              return 0;
+ 122   2          }
+ 123   1          DELAY(10);
+ 124   1          P35 = 0;
+ 125   1          P34 = 1;
+ 126   1          keyRD1 = (P3 & 0x0F);
+ 127   1          P35 = 1;
+ 128   1          P34 = 0;
+ 129   1          keyRD1 = (keyRD1 << 4) | (P3 & 0x0F);
+ 130   1          if (keyRD0 == keyRD1)
+ 131   1          {
+ 132   2              switch (~keyRD1)
+ 133   2              {
+ 134   3              case 0x80:
+ 135   3                  btN = 12;
+ 136   3                  break;
+ 137   3              case 0x40:
+ 138   3                  btN = 13;
+ 139   3                  break;
+ 140   3              case 0x08:
+ 141   3                  btN = 16;
+ 142   3                  break;
+ 143   3              case 0x04:
+ 144   3                  btN = 17;
+ 145   3                  break;
+ 146   3              default:
+ 147   3                  btN = 0;
+ 148   3                  break;
+ 149   3              }
+ 150   2          }
+ 151   1          return btN;
+ 152   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    640    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      15
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

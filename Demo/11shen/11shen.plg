@@ -1,0 +1,55 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Project:</h2>
+D:\Documents\code\C51\demo\#project\11shen\11shen.uvproj
+Project File Date:  02/17/2024
+
+<h2>Output:</h2>
+Rebuild target 'Target 1'
+compiling main.c...
+main.c(173): warning C280: 'ucMsCnt': unreferenced local variable
+compiling tim.c...
+compiling iic.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_PCF8591_DAC?IIC
+*** WARNING L1: UNRESOLVED EXTERNAL SYMBOL
+    SYMBOL:  ULMS
+    MODULE:  tim.obj (TIM)
+*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
+    SYMBOL:  ULMS
+    MODULE:  tim.obj (TIM)
+    ADDRESS: 14BAH
+*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
+    SYMBOL:  ULMS
+    MODULE:  tim.obj (TIM)
+    ADDRESS: 14BCH
+*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
+    SYMBOL:  ULMS
+    MODULE:  tim.obj (TIM)
+    ADDRESS: 14BEH
+*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
+    SYMBOL:  ULMS
+    MODULE:  tim.obj (TIM)
+    ADDRESS: 14C0H
+*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
+    SYMBOL:  ULMS
+    MODULE:  tim.obj (TIM)
+    ADDRESS: 14CBH
+*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
+    SYMBOL:  ULMS
+    MODULE:  tim.obj (TIM)
+    ADDRESS: 14D0H
+*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
+    SYMBOL:  ULMS
+    MODULE:  tim.obj (TIM)
+    ADDRESS: 14D5H
+*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
+    SYMBOL:  ULMS
+    MODULE:  tim.obj (TIM)
+    ADDRESS: 14DAH
+Program Size: data=96.1 xdata=0 code=5758
+creating hex file from "11shen"...
+"11shen" - 0 Error(s), 11 Warning(s).
