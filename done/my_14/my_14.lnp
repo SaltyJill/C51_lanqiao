@@ -1,7 +1,0 @@
-"driver.obj",
-"ds18b20.obj",
-"iic.obj",
-"main.obj",
-"ds1302.obj" 
-TO "my_14" 
-RAMSIZE(256) 

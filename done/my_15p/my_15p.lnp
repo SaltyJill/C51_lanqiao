@@ -1,7 +1,0 @@
-"driver.obj",
-"ds1302.obj",
-"iic.obj",
-"onewire.obj",
-"main.obj" 
-TO "my_15p" 
-RAMSIZE(256) 
