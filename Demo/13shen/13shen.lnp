@@ -1,6 +1,0 @@
-"main.obj",
-"tim.obj",
-"onewire.obj",
-"ds1302.obj" 
-TO "13shen" 
-RAMSIZE(256) 

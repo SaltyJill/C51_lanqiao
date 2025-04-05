@@ -31,6 +31,16 @@ void T1_INT(void) // 12T 12M
     ET1 = 1;
     TR1 = 1;
 }
+// 定时器T0设置
+void T0_INT(void)
+{
+	TMOD &=0xF0;
+	AUXR &=~(1<<7);
+	TH0=0x00;
+	TL0=0x00;
+	TF0=0;
+	TR0=0;
+}
 // 数码管显示码转换
 void Seg_TR(u8 *pDisp, u8 *pCode)
 {

@@ -207,7 +207,7 @@ void TEP_FUC(void)
         if (T_1MS - tep_time > 800)
         {
             temp_RD = DS18B20_RD();
-            TEMP_C = (temp_RD / 16 + 0.05) * 10;
+            TEMP_C = (temp_RD / 16.0 + 0.05) * 10;
             tep_time = T_1MS;
             Step_byTEP = 2;
         }

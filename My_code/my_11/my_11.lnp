@@ -1,5 +1,0 @@
-"driver.obj",
-"iic.obj",
-"main.obj" 
-TO "my_11" 
-RAMSIZE(256) 

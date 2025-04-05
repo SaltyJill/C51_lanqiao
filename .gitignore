@@ -3,6 +3,10 @@
 *.lnp
 *.M51
 *.plg
-*.uvgui.*
 *.uvopt
 *.uvproj
+*.iex
+*.bak
+*.uvgui.*
+*.__i
+*.htm

@@ -12,7 +12,7 @@ u8 SEG_DP[10] = "123450"; // 8个显示+一位小数点+终止符
 u8 SEG_CD[8] = {0};
 u8 SEG_PS = 0;
 u8 FLAG_seg = 0;
-u8 WIN_MD = 0; // 0,1,2三个菜单
+u8 WIN_MD = 0; // 0,1,2,3四个菜单
 u8 JOB_MD = 0; // 0,1两个工作模式
 /*定时器参数*/
 u32 T_1MS = 0;
@@ -22,10 +22,15 @@ u8 SECOND_DP = 0;
 u8 TIME_NOW[3] = {0};
 u8 FLAG_hour = 0;
 /*DS18B20温度传感器*/
-u16 TEMP_PARA = 23;
+u16 TEMP_PARA = 25;
 u16 TEMP_C = 23.5;
 /*继电器参数*/
 u8 FLAG_relay = 0;
+/*WAVE 参数*/
+sbit waveP10 = P1 ^ 0;
+sbit waveP11 = P1 ^ 1;
+u8 FLAG_WAVE = 0;
+u16 Lval = 0;
 // 任务如下
 void SEG_FUC(void);
 void KEY_FUC(void);
@@ -33,12 +38,14 @@ void TIM_FUC(void);
 void LED_FUC(void);
 void TEP_FUC(void);
 void RELAY_FUC(void);
+void WAVE_FUC(void);
 
 void main(void)
 {
     u8 time_ST[3] = {10, 59, 50}; // DS1302起始时间
     Other_CLS();
     T1_INT();
+    T0_INT();
     DS1302_SET(time_ST);
     while (1)
     {
@@ -48,6 +55,7 @@ void main(void)
         RELAY_FUC();
         LED_FUC();
         TEP_FUC();
+        WAVE_FUC();
     }
 }
 // 函数如下
@@ -59,7 +67,7 @@ void SEG_FUC(void)
         switch (WIN_MD)
         {
         case 0:
-            sprintf(SEG_DP, "U1```%4.1f", TEMP_C/10.0);
+            sprintf(SEG_DP, "U1```%4.1f", TEMP_C / 10.0);
             break;
         case 1:
             if (SECOND_DP)
@@ -73,6 +81,9 @@ void SEG_FUC(void)
             break;
         case 2:
             sprintf(SEG_DP, "U3````%02u", (u16)TEMP_PARA);
+            break;
+        case 3:
+            sprintf(SEG_DP, "U4`%5u", (u16)Lval);
             break;
         default:
             sprintf(SEG_DP, "ERROR");
@@ -136,21 +147,26 @@ void LED_FUC(void)
 void KEY_FUC(void)
 {
     static u8 key_past;
+    static u32 key_time = 0;
     u8 key_new;
     key_new = Key_MARTIX();
     if (key_new != key_past)
     {
-        key_past = key_new;
+        key_time = T_1MS;
         switch (key_new)
         {
         case 0:
+            if (key_past == 13)
+            {
+                key_13t = T_1MS;
+            }
             SECOND_DP = 0;
             break;
         case 12:
-            WIN_MD = (++WIN_MD) % 3;
+            WIN_MD = (++WIN_MD) & 0x03;
             break;
         case 13:
-            JOB_MD = (++JOB_MD) % 2;
+            JOB_MD = !JOB_MD;
             break;
         case 16:
             if (WIN_MD == 2)
@@ -177,6 +193,35 @@ void KEY_FUC(void)
             }
             break;
         }
+        key_past = key_new;
+    }
+    else if (T_1MS - key_time > 800)
+    {
+        switch (key_new)
+        {
+        case 16:
+            if (WIN_MD == 2)
+            {
+                TEMP_PARA++;
+                if (TEMP_PARA > 99)
+                {
+                    TEMP_PARA = 10;
+                }
+            }
+            break;
+        case 17:
+            if (WIN_MD == 2)
+            {
+                TEMP_PARA--;
+                if (TEMP_PARA < 10)
+                {
+                    TEMP_PARA = 99;
+                }
+            }
+            break;
+        default:
+            break;
+        }
     }
 }
 void TIM_FUC(void)
@@ -188,6 +233,44 @@ void TIM_FUC(void)
         if (!TIME_NOW[1] && !TIME_NOW[2])
         {
             FLAG_hour = 1;
+        }
+    }
+}
+void WAVE_FUC(void)
+{
+    u8 i = 4;
+    u16 Lget;
+    if (FLAG_WAVE)
+    {
+        FLAG_WAVE = 0;
+        TF0 = 0;
+        TH0 = 0xFF;
+        TL0 = 0xF3;
+        TR0 = 1;
+        while (i--)
+        {
+            while (!TF0)
+                ;
+            waveP10 ^= 1;
+            TF0 = 0;
+        }
+        TR0 = 0;
+        TF0 = 0;
+        TH0 = 0x00;
+        TL0 = 0x00;
+        TR0 = 1;
+        while (!TF0 && waveP11)
+            ;
+        TR0 = 0;
+        if (TF0)
+        {
+            TF0 = 0;
+            Lval = 65536 * 0.017;
+        }
+        else
+        {
+            Lget = (u16)(TH0 << 8) + TL0;
+            Lval = Lget * 0.017;
         }
     }
 }
@@ -207,7 +290,7 @@ void TEP_FUC(void)
         if (T_1MS - tep_time > 800)
         {
             temp_RD = DS18B20_RD();
-            TEMP_C = (temp_RD / 16 + 0.05) * 10;
+            TEMP_C = (temp_RD / 16.0 + 0.05) * 10;
             tep_time = T_1MS;
             Step_byTEP = 2;
         }
@@ -224,9 +307,10 @@ void RELAY_FUC(void)
 {
     static u32 relay_time = 0;
     static u8 flag_past = 0;
+
     if (!JOB_MD)
     {
-        if (TEMP_C > TEMP_PARA*10)
+        if (TEMP_C > TEMP_PARA * 10)
         {
             FLAG_relay = 1;
         }
@@ -273,6 +357,7 @@ void T1_ISR(void) interrupt 3
     {
         T_100MS = 0;
         FLAG_tim = 1;
+        FLAG_WAVE = 1;
     }
     Seg_DP(SEG_CD, SEG_PS);
     if (++SEG_PS == 8)
