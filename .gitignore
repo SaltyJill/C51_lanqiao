@@ -1,0 +1,8 @@
+*.LST
+*.OBJ
+*.lnp
+*.M51
+*.plg
+*.uvgui.*
+*.uvopt
+*.uvproj
