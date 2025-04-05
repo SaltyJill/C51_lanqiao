@@ -31,6 +31,8 @@ sbit waveP10 = P1 ^ 0;
 sbit waveP11 = P1 ^ 1;
 u8 FLAG_WAVE = 0;
 u16 Lval = 0;
+/*UART参数*/
+u8 MESSAGE=0;
 // 任务如下
 void SEG_FUC(void);
 void KEY_FUC(void);
@@ -39,6 +41,7 @@ void LED_FUC(void);
 void TEP_FUC(void);
 void RELAY_FUC(void);
 void WAVE_FUC(void);
+void UART_FUC(void);
 
 void main(void)
 {
@@ -46,6 +49,7 @@ void main(void)
     Other_CLS();
     T1_INT();
     T0_INT();
+		UART_INT();
     DS1302_SET(time_ST);
     while (1)
     {
@@ -56,6 +60,7 @@ void main(void)
         LED_FUC();
         TEP_FUC();
         WAVE_FUC();
+				UART_FUC();
     }
 }
 // 函数如下
@@ -156,10 +161,6 @@ void KEY_FUC(void)
         switch (key_new)
         {
         case 0:
-            if (key_past == 13)
-            {
-                key_13t = T_1MS;
-            }
             SECOND_DP = 0;
             break;
         case 12:
@@ -195,9 +196,9 @@ void KEY_FUC(void)
         }
         key_past = key_new;
     }
-    else if (T_1MS - key_time > 800)
+    if (T_1MS - key_time > 800)
     {
-        switch (key_new)
+        switch (key_past)
         {
         case 16:
             if (WIN_MD == 2)
@@ -344,6 +345,25 @@ void RELAY_FUC(void)
         }
     }
 }
+void UART_FUC(void)
+{
+	if(MESSAGE)
+	{
+		switch(MESSAGE)
+		{
+			case 1:
+				UART_SEND("SUCC");
+				break;
+			case 2:
+				UART_SEND("DATA_ERO");
+				break;
+			case 3:
+				UART_SEND("NUM_ERO");
+				break;
+		}
+		MESSAGE=0;
+	}
+}
 void T1_ISR(void) interrupt 3
 {
     static u8 T_10MS = 0, T_100MS = 0;
@@ -364,4 +384,38 @@ void T1_ISR(void) interrupt 3
     {
         SEG_PS = 0;
     }
+}
+void UART_ISR(void) interrupt 4
+{
+	static u8 uart[8]={0};
+	static u8 posi=0;
+	u8 tep,r,n;
+	u16 match;
+	if(RI)
+		{
+			RI=0;
+			uart[posi++]=SBUF;
+			uart[posi]=0;
+			if(posi==6)
+				{
+					match=sscanf("WD%2d%c%c",&tep,&r,&n);
+					if(match==3)
+					{
+						if(r=='\r'&&n=='\n'&&tep>0&&tep<99)
+						{
+							TEMP_PARA=tep;
+							MESSAGE=1;
+						}
+						else 
+						{
+							MESSAGE=2;
+						}
+					}
+					else
+					{
+						MESSAGE=3;
+					}
+					posi=0;
+				}
+		}
 }

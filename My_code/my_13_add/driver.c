@@ -41,6 +41,28 @@ void T0_INT(void)
 	TF0=0;
 	TR0=0;
 }
+void UART_INT(void)
+{
+	SCON=0x50;
+	AUXR|=0x01;
+	AUXR|=0x04;
+	T2H=0xFE;
+	T2L=0xC7;
+	AUXR|=0x10;
+	EA=1;
+	ES=1;
+}
+void UART_SEND(u8 *pstr)
+{
+	u8 i=0;
+	while(pstr[i])
+		{
+			SBUF=pstr[i];
+			while(!TI);
+			TI=0;
+			i++;
+		}
+}
 // 数码管显示码转换
 void Seg_TR(u8 *pDisp, u8 *pCode)
 {
