@@ -92,10 +92,12 @@ void KEY_Fuc(void){
 		}
 		keyPast=keyNow;
 	}
-	if(T1_1MS-keyT>=1000){
-		if(keyNow==7){
+	if(T1_1MS-keyT>=1000)
+	{
+		if(keyNow==7)
+		{
 			flagKey7=1;
-	}
+		}
 	}
 }
 void ADC_Fuc(void){
