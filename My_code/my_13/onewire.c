@@ -87,5 +87,5 @@ signed int DS18B20_RD(void)
     Write_DS18B20(0xBE);
     DL = Read_DS18B20();
     DH = Read_DS18B20();
-    return (DH << 8)+DL;
+    return (DH << 8) + DL;
 }

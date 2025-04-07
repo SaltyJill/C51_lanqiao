@@ -11,6 +11,6 @@ void SEG_disp(u8 *pCD, u8 PS);
 unsigned char KEY_martix(void);
 void URT_int(void);
 void URT_send(u8 *str);
-// which 1¼ÌµçÆ÷0·äÃùÆ÷£¬how1Æô¶¯0¹Ø±Õ
-void DEV_out(u8 which,u8 how);
+// which:delay 1 speake 0;how: 1 open 0 close
+void DEV_out(u8 which, u8 how);
 #endif

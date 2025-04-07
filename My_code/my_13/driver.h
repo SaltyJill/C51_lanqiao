@@ -15,6 +15,6 @@ void Seg_DP(u8 *pCode, u8 Pos);
 void DELAY(u16 ct);
 // 矩阵键盘读取
 unsigned char Key_MARTIX(void);
-//继电器状态
+// 继电器状态
 void Relay(u8 sw);
 #endif

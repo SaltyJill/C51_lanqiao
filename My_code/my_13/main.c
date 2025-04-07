@@ -59,7 +59,7 @@ void SEG_FUC(void)
         switch (WIN_MD)
         {
         case 0:
-            sprintf(SEG_DP, "U1```%4.1f", TEMP_C/10.0);
+            sprintf(SEG_DP, "U1```%4.1f", TEMP_C / 10.0);
             break;
         case 1:
             if (SECOND_DP)
@@ -226,7 +226,7 @@ void RELAY_FUC(void)
     static u8 flag_past = 0;
     if (!JOB_MD)
     {
-        if (TEMP_C > TEMP_PARA*10)
+        if (TEMP_C > TEMP_PARA * 10)
         {
             FLAG_relay = 1;
         }

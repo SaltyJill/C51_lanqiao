@@ -6,7 +6,7 @@ void Led_DP(u8 out);
 // 关闭蜂鸣器，LED 数码管等外设
 void Other_CLS(void);
 // 定时器T1设置
-void T1_INT(void);// 12T 12M
+void T1_INT(void); // 12T 12M
 // 定时器T0设置
 void T0_INT(void);
 // 串口设置

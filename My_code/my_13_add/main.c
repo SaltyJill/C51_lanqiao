@@ -32,7 +32,7 @@ sbit waveP11 = P1 ^ 1;
 u8 FLAG_WAVE = 0;
 u16 Lval = 0;
 /*UART参数*/
-u8 MESSAGE=0;
+u8 MESSAGE = 0;
 // 任务如下
 void SEG_FUC(void);
 void KEY_FUC(void);
@@ -49,7 +49,7 @@ void main(void)
     Other_CLS();
     T1_INT();
     T0_INT();
-		UART_INT();
+    UART_INT();
     DS1302_SET(time_ST);
     while (1)
     {
@@ -60,7 +60,7 @@ void main(void)
         LED_FUC();
         TEP_FUC();
         WAVE_FUC();
-				UART_FUC();
+        UART_FUC();
     }
 }
 // 函数如下
@@ -347,22 +347,22 @@ void RELAY_FUC(void)
 }
 void UART_FUC(void)
 {
-	if(MESSAGE)
-	{
-		switch(MESSAGE)
-		{
-			case 1:
-				UART_SEND("SUCC");
-				break;
-			case 2:
-				UART_SEND("DATA_ERO");
-				break;
-			case 3:
-				UART_SEND("NUM_ERO");
-				break;
-		}
-		MESSAGE=0;
-	}
+    if (MESSAGE)
+    {
+        switch (MESSAGE)
+        {
+        case 1:
+            UART_SEND("SUCC");
+            break;
+        case 2:
+            UART_SEND("DATA_ERO");
+            break;
+        case 3:
+            UART_SEND("NUM_ERO");
+            break;
+        }
+        MESSAGE = 0;
+    }
 }
 void T1_ISR(void) interrupt 3
 {
@@ -380,39 +380,39 @@ void T1_ISR(void) interrupt 3
         FLAG_WAVE = 1;
     }
     Seg_DP(SEG_CD, SEG_PS);
-    SEG_PS=(++SEG_PS)&0x07;
+    SEG_PS = (++SEG_PS) & 0x07;
 }
 void UART_ISR(void) interrupt 4
 {
-	static u8 uart[8]={0};
-	static u8 posi=0;
-	u8 tep,r,n;
-	u16 match;
-	if(RI)
-		{
-			RI=0;
-			uart[posi++]=SBUF;
-			uart[posi]=0;
-			if(posi==6)
-				{
-					match=sscanf("WD%2d%c%c",&tep,&r,&n);
-					if(match==3)
-					{
-						if(r=='\r'&&n=='\n'&&tep>0&&tep<99)
-						{
-							TEMP_PARA=tep;
-							MESSAGE=1;
-						}
-						else 
-						{
-							MESSAGE=2;
-						}
-					}
-					else
-					{
-						MESSAGE=3;
-					}
-					posi=0;
-				}
-		}
+    static u8 uart[8] = {0};
+    static u8 posi = 0;
+    u8 tep, r, n;
+    u16 match;
+    if (RI)
+    {
+        RI = 0;
+        uart[posi++] = SBUF;
+        uart[posi] = 0;
+        if (posi == 6)
+        {
+            match = sscanf("WD%2d%c%c", &tep, &r, &n);
+            if (match == 3)
+            {
+                if (r == '\r' && n == '\n' && tep > 0 && tep < 99)
+                {
+                    TEMP_PARA = tep;
+                    MESSAGE = 1;
+                }
+                else
+                {
+                    MESSAGE = 2;
+                }
+            }
+            else
+            {
+                MESSAGE = 3;
+            }
+            posi = 0;
+        }
+    }
 }

@@ -4,7 +4,7 @@
 #include "absacc.h"
 #include "intrins.h"
 
-#define u8 unsigned char 
+#define u8 unsigned char
 #define s8 signed char
 #define u16 unsigned int
 #define s16 signed int

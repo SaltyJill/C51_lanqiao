@@ -154,7 +154,7 @@ void ADC_FUC(void)
     {
         flag_ADC = 0;
         ucADC = PCF8591_ADC();
-        RH = (80/153.0)*ucADC-(50/3.0);
+        RH = (80 / 153.0) * ucADC - (50 / 3.0);
         if (RH < 10)
         {
             RH = 10;
@@ -163,11 +163,11 @@ void ADC_FUC(void)
         {
             RH = 90;
         }
-        if (rh_past > RH_para && RH<RH_para)
+        if (rh_past > RH_para && RH < RH_para)
         {
             flag_RELAY = 1;
         }
-        rh_past=RH;
+        rh_past = RH;
     }
 }
 void RELAY_FUC(void)

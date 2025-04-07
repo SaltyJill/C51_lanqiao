@@ -125,18 +125,18 @@ void I2CSendAck(unsigned char ackbit)
 /*user code here*/
 u8 PCF8591_ADC(u8 chanal)
 {
-	u8 uADC=0;
-	I2CStart();
-	I2CSendByte(0x90);
-	I2CWaitAck();
-	I2CSendByte(0x40+chanal);
-	I2CWaitAck();
-	I2CStart();
-	I2CSendByte(0x91);
-	uADC=I2CReceiveByte();
-	I2CSendAck(0);
-	uADC=I2CReceiveByte();
-	I2CSendAck(1);
-	I2CStop();
-	return uADC;
+    u8 uADC = 0;
+    I2CStart();
+    I2CSendByte(0x90);
+    I2CWaitAck();
+    I2CSendByte(0x40 + chanal);
+    I2CWaitAck();
+    I2CStart();
+    I2CSendByte(0x91);
+    uADC = I2CReceiveByte();
+    I2CSendAck(0);
+    uADC = I2CReceiveByte();
+    I2CSendAck(1);
+    I2CStop();
+    return uADC;
 }

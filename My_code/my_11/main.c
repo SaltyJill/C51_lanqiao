@@ -55,7 +55,7 @@ void led_Fuc(void)
         low_time = ISR_T1;
         flag_L1 = 0;
     }
-    else if ((voltage <= volt_para*10) && (ISR_T1 - low_time > 5000))
+    else if ((voltage <= volt_para * 10) && (ISR_T1 - low_time > 5000))
     {
         led_DISP |= 1;
     }

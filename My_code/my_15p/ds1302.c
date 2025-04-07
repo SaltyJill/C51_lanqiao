@@ -67,18 +67,18 @@ unsigned char Read_Ds1302_Byte(unsigned char address)
 void DS1302_SET(u8 *ptime)
 {
     Write_Ds1302_Byte(0x8E, 0x00);
-    Write_Ds1302_Byte(0x80, ptime[2] /10* 16 + ptime[2] % 10);
-    Write_Ds1302_Byte(0x82, ptime[1] /10* 16 + ptime[1] % 10);
-    Write_Ds1302_Byte(0x84, ptime[0] /10* 16 + ptime[0] % 10);
+    Write_Ds1302_Byte(0x80, ptime[2] / 10 * 16 + ptime[2] % 10);
+    Write_Ds1302_Byte(0x82, ptime[1] / 10 * 16 + ptime[1] % 10);
+    Write_Ds1302_Byte(0x84, ptime[0] / 10 * 16 + ptime[0] % 10);
     Write_Ds1302_Byte(0x8E, 0x80);
 }
 void DS1302_RED(u8 *prdTime)
 {
     u8 tTime;
     tTime = Read_Ds1302_Byte(0x81);
-    prdTime[2] = tTime /16*10 + tTime % 16;
+    prdTime[2] = tTime / 16 * 10 + tTime % 16;
     tTime = Read_Ds1302_Byte(0x83);
-    prdTime[1] = tTime /16*10 + tTime % 16;
+    prdTime[1] = tTime / 16 * 10 + tTime % 16;
     tTime = Read_Ds1302_Byte(0x85);
-    prdTime[0] = tTime /16* 10 + tTime % 16;
+    prdTime[0] = tTime / 16 * 10 + tTime % 16;
 }

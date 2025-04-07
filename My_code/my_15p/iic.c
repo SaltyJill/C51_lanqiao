@@ -128,7 +128,7 @@ unsigned char PCF8591_ADC(u8 chanl)
     I2CStart();
     I2CSendByte(0x90);
     I2CWaitAck();
-    I2CSendByte(0x40|chanl);
+    I2CSendByte(0x40 | chanl);
     I2CWaitAck();
 
     I2CStart();

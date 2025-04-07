@@ -109,7 +109,7 @@ void DELAY(u8 Dms)
 unsigned char key_Martix(void)
 {
     u8 keyRD0, keyRD1;
-    u8 btN=0;
+    u8 btN = 0;
     P35 = 0;
     P34 = 1;
     keyRD0 = (P3 & 0x0F);
