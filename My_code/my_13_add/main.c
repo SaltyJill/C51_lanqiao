@@ -380,10 +380,7 @@ void T1_ISR(void) interrupt 3
         FLAG_WAVE = 1;
     }
     Seg_DP(SEG_CD, SEG_PS);
-    if (++SEG_PS == 8)
-    {
-        SEG_PS = 0;
-    }
+    SEG_PS=(++SEG_PS)&0x07;
 }
 void UART_ISR(void) interrupt 4
 {

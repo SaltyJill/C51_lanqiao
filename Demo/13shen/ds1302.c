@@ -4,9 +4,8 @@
 		中对单片机时钟频率的要求，进行代码调试和修改。
 */								
 
-//DS1302时钟芯片
+//
 #include "ds1302.h"
-//DS1302 写入
 void Write_Ds1302(unsigned  char temp) 
 {
 	unsigned char i;
@@ -19,7 +18,7 @@ void Write_Ds1302(unsigned  char temp)
 	}
 }   
 
-//DS1302 指定地址写入
+//
 void Write_Ds1302_Byte( unsigned char address,unsigned char dat )     
 {
  	RST=0;	_nop_();
@@ -55,19 +54,19 @@ unsigned char Read_Ds1302_Byte ( unsigned char address )
 }
 void Wr_Time(u8 *pucTime)
 {
-	Write_Ds1302_Byte(0x8E,0x00);//关闭写保护
-	Write_Ds1302_Byte(0x84,pucTime[0]/10*16+pucTime[0]%10);//写入小时，默认24h制，将时间转化为16进制
-	Write_Ds1302_Byte(0x82,pucTime[1]/10*16+pucTime[1]%10);//写入分钟
-	Write_Ds1302_Byte(0x80,pucTime[2]/10*16+pucTime[2]%10);//写入秒
-	Write_Ds1302_Byte(0x8E,0x80);//开启写保护
+	Write_Ds1302_Byte(0x8E,0x00);
+	Write_Ds1302_Byte(0x84,pucTime[0]/10*16+pucTime[0]%10);
+	Write_Ds1302_Byte(0x82,pucTime[1]/10*16+pucTime[1]%10);
+	Write_Ds1302_Byte(0x80,pucTime[2]/10*16+pucTime[2]%10);
+	Write_Ds1302_Byte(0x8E,0x80);	
 }
 void Rd_Time(u8 *pucTime)
 {
 	u8 rd1;
-	rd1=Read_Ds1302_Byte(0x85);//取出小时位时间
-	pucTime[0]=rd1/16*10+rd1%16;//转化为十进制
-	rd1=Read_Ds1302_Byte(0x83);//取出分钟
+	rd1=Read_Ds1302_Byte(0x85);
+	pucTime[0]=rd1/16*10+rd1%16;
+	rd1=Read_Ds1302_Byte(0x83);
 	pucTime[1]=rd1/16*10+rd1%16;
-	rd1=Read_Ds1302_Byte(0x81);//取出秒
+	rd1=Read_Ds1302_Byte(0x81);
 	pucTime[2]=rd1/16*10+rd1%16;
 }
