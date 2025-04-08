@@ -227,13 +227,13 @@ void DEV_out(u8 which, u8 how)
     {
         if (how)
         {
-            P0 |= (1 << 7);
+            P0 |= (1 << 6);
             P2 = (P2 & 0x1F) | 0xA0;
             P2 &= 0x1F;
         }
         else
         {
-            P0 &= ~(1 << 7);
+            P0 &= ~(1 << 6);
             P2 = (P2 & 0x1F) | 0xA0;
             P2 &= 0x1F;
         }
