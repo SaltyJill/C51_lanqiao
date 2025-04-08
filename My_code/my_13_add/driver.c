@@ -15,7 +15,7 @@ void Other_CLS(void)
     P2 = (P2 & 0x1F) | 0x80;
     P2 &= 0x1F;
     /*Speaker butter close*/
-    P0 = 0x40;
+    P0 = 0x00;
     P2 = (P2 & 0x1F) | 0xA0;
     P2 &= 0x1F;
 }
@@ -130,7 +130,6 @@ void Seg_TR(u8 *pDisp, u8 *pCode)
             j = j - 1;
             *(pCode + j) &= 0x7f;
             break;
-
         default:
             *(pCode + j) = 0xff;
             break;
