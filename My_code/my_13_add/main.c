@@ -386,8 +386,9 @@ void UART_ISR(void) interrupt 4
 {
     static u8 uart[8] = {0};
     static u8 posi = 0;
-    u8 tep, r, n;
-    u16 match;
+    u16 tep;
+		u8 r, n;
+    int match;
     if (RI)
     {
         RI = 0;
@@ -395,7 +396,7 @@ void UART_ISR(void) interrupt 4
         uart[posi] = 0;
         if (posi == 6)
         {
-            match = sscanf("WD%2d%c%c", &tep, &r, &n);
+            match = sscanf(uart,"WD%2d%c%c", &tep, &r, &n);
             if (match == 3)
             {
                 if (r == '\r' && n == '\n' && tep > 0 && tep < 99)
