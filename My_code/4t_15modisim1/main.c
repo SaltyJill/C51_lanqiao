@@ -209,17 +209,20 @@ void TIM_Fuc(void)
 void EE_Fuc(void)
 {
     u8 tempE;
-    static u16 date_past = 0;
+		u16 saveD=0;
     if (FLAG_SAVE)
     {
         FLAG_SAVE = 0;
         TIME_SAVE[0] = TIME_NOW[0];
         TIME_SAVE[1] = TIME_NOW[1];
-				if(date_past)
+				E2_RD(&tempE,2,1);
+				saveD=(tempE<<8);
+				E2_RD(&tempE,3,1);
+				saveD|=tempE;
+				if(DATE)
 				{
-					FLAG_L4 = (DATE > date_past) ? (1) : (0);
+					FLAG_L4 = (DATE > saveD) ? (1) : (0);
 				}
-        date_past = DATE;
         sprintf(EE_DATE, "%04x", DATE);
         tempE = TIME_SAVE[0];
 				E2_WR(&tempE,0,1);
