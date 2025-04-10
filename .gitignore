@@ -11,3 +11,6 @@
 *.__i
 *.htm
 canshu.*
+*.BAT
+*.bat
+.vscode/
