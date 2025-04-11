@@ -68,21 +68,20 @@ bit init_ds18b20(void)
     return initflag;
 }
 /*user code here*/
-void DS18b20_CV(void)
+int DS18b20_TP(void)
 {
-    bit inf = 0;
-    inf = init_ds18b20();
-    Write_DS18B20(0xCC);
-    Write_DS18B20(0x44);
-}
-u16 DS18b20_RD(void)
-{
-    u8 DL, DH;
-    bit inf = 0;
-    inf = init_ds18b20();
-    Write_DS18B20(0xCC);
-    Write_DS18B20(0xBE);
-    DL = Read_DS18B20();
-    DH = Read_DS18B20();
-    return (DH << 8) + DL;
+	u8 tpH,tpL;
+	bit ind=0;
+	ind=init_ds18b20();
+	Write_DS18B20(0xCC);
+	Write_DS18B20(0x44);
+	Delay_OneWire(200);
+	
+	ind=init_ds18b20();
+	Write_DS18B20(0xCC);
+	Write_DS18B20(0xBE);
+	tpL=Read_DS18B20();
+	tpH=Read_DS18B20();
+	
+	return (tpH<<8)|tpL;
 }

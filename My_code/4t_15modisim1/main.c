@@ -34,7 +34,7 @@ void LED_Fuc(void);
 
 void main(void)
 {
-    u8 timeSET[3] = {12, 59, 45};
+    u8 timeSET[3] = {12, 30, 00};
     DS1302_SET(timeSET);
     DEV_Cls();
     T1_Int();

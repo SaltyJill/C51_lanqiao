@@ -6,7 +6,6 @@
 #include <stdio.h>
 // LED 参数
 u8 LED_OUT = 0;
-u8 FLAG_LIGHT = 0;
 u8 FLAG_L1 = 0,
    FLAG_L2 = 0;
 // ISR 参数
@@ -32,7 +31,7 @@ u16 TEP_VAL = 24;
 // ADC 参数
 u8 FLAG_8591 = 0;
 u8 chnal = 0;
-u16 ADC_V[3] = {0};
+u16 ADC_V[4] = {0};
 // TIM 参数
 u8 TIM_NOW[3] = {0};
 u8 TIM_TRIG[3] = {0};
@@ -62,7 +61,7 @@ void main(void)
 {
     DEV_cls();
     T1_int();
-    T0_int();
+    //T0_int();
     URT_int();
     DS1302_SET(TIM_Set);
     EE_RD(EE_D, 1, 2);
@@ -117,7 +116,7 @@ void SEG_Fuc(void)
             }
             else
             {
-                sprintf(SEG_DP, "F%3.2f%2.1f%2.1f", ADC_V[0] / 100.0, ADC_V[1] / 100.0, ADC_V[2] / 100.0);
+                sprintf(SEG_DP, "F%3.2f%2.1f%2.1f", ADC_V[0] / 100.0, ADC_V[1] / 100.0, ADC_V[3] / 100.0);
             }
             break;
         case 1:
@@ -160,7 +159,7 @@ void KEY_Fuc(void)
             }
             break;
         case 4:
-            if (T1_1ms - key_4t < 300 && (key_4t != 0))
+            if (T1_1ms - key_4t < 300 && key_4t!=0)
             {
                 page = (++page) & 0x03;
                 if (page == 2)
@@ -241,132 +240,7 @@ void TIM_Fuc(void)
     {
         FLAG_TIM = 0;
         DS1302_RED(TIM_NOW);
-    }
-}
-void TEP_Fuc(void)
-{
-    static u32 tep_time;
-    static u8 tep_step = 0;
-    s16 iwd;
-    switch (tep_step)
-    {
-    case 0:
-        DS18b20_CV();
-        tep_time = T1_1ms;
-        tep_step = 1;
-        break;
-    case 1:
-        if (T1_1ms - tep_time > 800)
-        {
-            iwd = DS18b20_RD();
-            TEP_VAL = (iwd / 16.0 + 0.05) * 10;
-            tep_step = 2;
-            tep_time = T1_1ms;
-        }
-        break;
-    case 2:
-        if (T1_1ms - tep_time > 5)
-        {
-            tep_step = 0;
-        }
-        break;
-    }
-}
-void V8591_Fuc(void)
-{
-    static u8 DAC_O;
-    static u8 N = 0;
-    float DACget;
-    u8 ADCget;
-    if (FLAG_8591)
-    {
-        FLAG_8591 = 0;
-        if (N == 2)
-        {
-            chnal = 3;
-        }
-        else
-        {
-            chnal = N;
-        }
-        ADCget = PCF8591_ADC(chnal);
-        ADC_V[N] = (ADCget * 5.0 / 255 + 0.005) * 100;
-        N = (++N) % 3;
-    }
-    if (ADC_V[1] < 100)
-    {
-        FLAG_LIGHT = 1;
-    }
-    else
-    {
-        FLAG_LIGHT = 0;
-    }
-    // DAC out
-    if (LVAL > 0)
-    {
-        if (LVAL <= 40)
-        {
-            DAC_O = (1 * 255 / 5);
-        }
-        else if (LVAL >= L_PARA)
-        {
-            DAC_O = (5 * 255 / 5);
-        }
-        else
-        {
-            DACget = 4.0 * LVAL / (L_PARA - 40) - 160.0 / (L_PARA - 40) + 1;
-            DAC_O = DACget * 255.0 / 5;
-        }
-        PCF8591_DAC(DAC_O);
-    }
-}
-void WAV_Fuc(void)
-{
-    u8 i = 4;
-    u16 wave_T;
-    if (FLAG_ULT)
-    {
-        FLAG_ULT = 0;
-        TR0 = 0;
-        TL0 = 0xF3;
-        TH0 = 0xFF;
-        TF0 = 0;
-        TR0 = 1;
-        while (i--)
-        {
-            while (!TF0)
-                ;
-            TF0 = 0;
-            waveP10 ^= 1;
-        }
-        TR0 = 0;
-        TL0 = 0x00;
-        TH0 = 0x00;
-        TF0 = 0;
-        TR0 = 1;
-        while (!TF0 && waveP11)
-            ;
-        TR0 = 0;
-        if (TF0)
-        {
-            LVAL = 255 + L_ADJ;
-            TF0 = 0;
-        }
-        else
-        {
-            wave_T = (u16)TH0;
-            wave_T = (u16)(wave_T << 8) + TL0;
-            LVAL = wave_T * 0.017 + L_ADJ;
-        }
-        if (LVAL > 255)
-        {
-            LVAL = 255;
-        }
-        if (LVAL < 0)
-        {
-            LVAL = -10;
-        }
-        if (LVAL > L_MAX)
+			if(LVAL > L_MAX)
         {
             L_MAX = LVAL;
             TIM_TRIG[0] = TIM_NOW[0];
@@ -375,19 +249,109 @@ void WAV_Fuc(void)
         }
     }
 }
+void TEP_Fuc(void)
+{
+    s16 iwd;
+		iwd=DS18b20_TP();
+		TEP_VAL = (iwd / 16.0 + 0.05) * 10;
+}
+void V8591_Fuc(void)
+{
+    static u8 DAC_O;
+    float DACget;
+    u8 ADCget;
+		if(FLAG_8591)
+		{
+			FLAG_8591=0;
+			chnal=(++chnal)&0x03;
+			if(chnal!=2)
+			{
+				ADCget = PCF8591_ADC(chnal);
+        ADC_V[chnal] = (ADCget * 5.0 / 255 + 0.005) * 100;
+			}
+			else
+			{
+				if (LVAL > 0)
+				{
+					if (LVAL <= 40)
+					{
+            DAC_O = (1 * 255 / 5);
+					}
+					else if (LVAL >= L_PARA)
+					{
+            DAC_O = (5 * 255 / 5);
+					}
+					else
+					{
+            DACget = 4.0 * LVAL / (L_PARA - 40) - 160.0 / (L_PARA - 40) + 1;
+            DAC_O = DACget * 255.0 / 5;
+					}
+					PCF8591_DAC(DAC_O);
+				}
+			}
+		}
+}
+void WAV_Fuc(void)
+{
+    u8 i = 4;
+    u16 wave_T;
+    if (FLAG_ULT)
+    {
+        FLAG_ULT = 0;
+        CR = 0;
+				CH = 0xFF;
+        CL = 0xF3;
+        CF = 0;
+        CR = 1;
+        while (i--)
+        {
+            while (!CF)
+                ;
+            CF = 0;
+            waveP10 ^= 1;
+        }
+        CR = 0;
+        CL = 0x00;
+        CH = 0x00;
+        CF = 0;
+        CR = 1;
+        while (!CF && waveP11)
+            ;
+        CR = 0;
+        if (CF)
+        {
+            LVAL = 255 + L_ADJ;
+            CF = 0;
+        }
+        else
+        {
+            wave_T = (u16)CH;
+            wave_T = (u16)(wave_T << 8) + CL;
+            LVAL = wave_T * 0.017 + L_ADJ;
+        }
+       if (LVAL > 255)
+        {
+            LVAL = 255;
+        }
+        if (LVAL < 0)
+        {
+            LVAL = -10;
+        }
+		}
+}
 void LED_Fuc(void)
 {
     static u8 led_past;
     static u32 LED_t = 0;
     // L8
-    if (FLAG_LIGHT)
-    {
+		if (ADC_V[1] < 100)
+			{
         LED_OUT |= (u8)(1 << 7);
-    }
-    else
-    {
+			}
+			else
+			{
         LED_OUT &= (u8) ~(1 << 7);
-    }
+			}
     // Flash
     if ((T1_1ms - LED_t) > 200)
     {
@@ -421,9 +385,13 @@ void LED_Fuc(void)
         else
         {
             if (FLAG_L2)
+						{
                 LED_OUT |= (u8)(1 << 1);
+						}
             else
+						{
                 LED_OUT &= (u8) ~(1 << 1);
+						}
         }
     }
 
@@ -433,10 +401,9 @@ void LED_Fuc(void)
         LED_disp(LED_OUT);
     }
 }
-
 void DEV_Fuc(void)
 {
-    if (FLAG_LIGHT)
+		if (ADC_V[1] < 100)
     {
         if (LVAL > L_PARA)
         {
@@ -455,10 +422,14 @@ void DEV_Fuc(void)
             DEV_out(0, 0);
         }
     }
+		else
+		{
+				DEV_out(0, 0);
+			  DEV_out(1, 0);
+		}
 }
 void URT_Fuc(void)
 {
-    // message
     if (Error_D)
     {
         switch (Error_D)

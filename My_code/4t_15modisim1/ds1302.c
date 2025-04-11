@@ -57,7 +57,7 @@ void DS1302_SET(u8 *pSETime)
 	Write_Ds1302_Byte(0x8E,0x00);
 	
 	Write_Ds1302_Byte(0x80,pSETime[2]/10*16+pSETime[2]%10);
-	Write_Ds1302_Byte(0x82,pSETime[1]/10*10+pSETime[1]%10);
+	Write_Ds1302_Byte(0x82,pSETime[1]/10*16+pSETime[1]%10);
 	Write_Ds1302_Byte(0x84,pSETime[0]/10*16+pSETime[0]%10);
 	
 	Write_Ds1302_Byte(0x8E,0x80);

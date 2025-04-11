@@ -6,7 +6,7 @@ void DEV_cls(void)
     P2 = (P2 & 0x1F) | 0x80;
     P2 &= 0x1F;
 
-    P0 = 0x0;
+    P0 = 0x00;
     P2 = (P2 & 0x1F) | 0xA0;
     P2 &= 0x1F;
 }
@@ -21,6 +21,7 @@ void T1_int(void)
     TF1 = 0;
     TR1 = 1;
 }
+/*
 void T0_int(void)
 {
     TMOD &= 0xF0;
@@ -30,6 +31,7 @@ void T0_int(void)
     TF0 = 0;
     TR0 = 0;
 }
+*/
 void LED_disp(u8 outp)
 {
     P0 = ~outp;
@@ -206,36 +208,28 @@ void URT_send(u8 *str)
 }
 void DEV_out(u8 which, u8 how)
 {
-    P0 = 0x00;
-    P2 &= 0x1F;
     if (which)
     {
         if (how)
         {
             P0 |= (1 << 4);
-            P2 = (P2 & 0x1F) | 0xA0;
-            P2 &= 0x1F;
         }
         else
         {
             P0 &= ~(1 << 4);
-            P2 = (P2 & 0x1F) | 0xA0;
-            P2 &= 0x1F;
         }
     }
     else
     {
         if (how)
         {
-            P0 |= (1 << 7);
-            P2 = (P2 & 0x1F) | 0xA0;
-            P2 &= 0x1F;
+            P0 |= (1 << 6);
         }
         else
         {
-            P0 &= ~(1 << 7);
-            P2 = (P2 & 0x1F) | 0xA0;
-            P2 &= 0x1F;
+            P0 &= ~(1 << 6);
         }
     }
+		P2 = (P2 & 0x1F) | 0xA0;
+    P2 &= 0x1F;
 }
