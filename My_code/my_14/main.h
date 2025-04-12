@@ -9,5 +9,6 @@
 #define u16 unsigned int
 #define s16 signed int
 #define u32 unsigned long
+#define s32 signed long
 
 #endif

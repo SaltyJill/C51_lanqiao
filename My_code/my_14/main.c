@@ -2,422 +2,375 @@
 #include "driver.h"
 #include "iic.h"
 #include "ds1302.h"
-#include "ds18b20.h"
+#include "onewire.h"
 #include <stdio.h>
-/*LED参数*/
-u8 LED_DP = 0;
-u8 flagL4 = 0;
-u8 flagL5 = 0;
-u8 flagL6 = 0;
-/*T1中断参数*/
-u32 T1_1MS = 0;
-/*ADC参数*/
-u8 FLAG_ADC = 0;
-u8 DARK_nLIGHT = 0;
-u8 TRIG_Cnt = 0;
-u8 AD_ALLOW = 0;
-/*SEG参数*/
-u8 SEG_DP[12] = "23232", SEG_Code[8] = {0}, SEG_POSI = 0;
-u8 FLAG_SEG = 0;
-u8 page = 0, BACK_page = 0;
-u8 TPandRH = 0, CD_3S = 0;
-u8 RH_DP = 0;
-/*温度与湿度参数*/
-u8 FLAG_overT = 0;
-u8 FLAG_FREQ = 0;
-u8 FLAG_TEP = 0;
-u16 TEMP_C = 0,
-    TEMP_P = 0,
-    TEMP_Max = 0,
-    TEMP_PARA = 300;
-u16 RH = 0,
-    RH_P = 0,
-    RH_Max = 0;
-u16 Freq = 0;
-u32 TEMP_Sum = 0;
-u32 RH_Sum = 0;
-/*TIM参数*/
-u8 FLAG_TIME = 0;
-u8 TIME_NOW[3] = {0};
-u8 TIME_Trig[2] = {0};
-void SEG_FUC(void);
-void KEY_FUC(void);
-void LED_FUC(void);
-void ADC_FUC(void);
-void TIM_FUC(void);
-void TEP_FUC(void);
-void FRQ_FUC(void);
+// LED
+u8 FLAG_FLASH = 0;
+u8 FLAG_L6=0;
+//ISR
+u16 FREQ=0;
+u32 T1_1MS=0;
+// SEG
+u8 SEG_DP[10]="12345",
+	SEG_CD[8]={0};
+u8 SEG_PS=0,
+	FLAG_SEG=0;
+u8 page=0,
+	page_back=0;
+u8 CD_3S=0,
+	STEP_GET=0;
+// TIM
+u8 TIME_NOW[3]={0},
+	TIME_TRIG[3]={0};
+u8 FLAG_TIM=0;
+// TEP
+u8 FLAG_TEP=0;
+u16 TEP=0,
+	TEP_SAVE=0,
+	TEP_PARA=25,
+	TEP_MAX=0,
+	TEP_SUM=0;
+// RH
+u16 RH=0,
+	RH_SAVE=0,
+	RH_MAX=0,
+	RH_SUM=0;
+// ADC
+u8 FLAG_ADC=0;
+u16 TRIG_CNT=0;
+
+void SEG_Fuc(void);
+void KEY_Fuc(void);
+void TIM_Fuc(void);
+void ADC_Fuc(void);
+void TEP_Fuc(void);
+void RH_Fuc(void);
+void LED_Fuc(void);
+
 void main(void)
 {
-    u8 timeset[3] = {10, 59, 45};
-    DS1302_SET(timeset);
-    DEV_Cls();
-    T1_Int();
-    T0_Int();
+	u8 Stime[3]={12,59,45};
+	DEV_Cls();
+	T1_Int();
+	T0_Int();
+	DS1302_ST(Stime);
+	while(1)
+	{
+		KEY_Fuc();
+		TIM_Fuc();
+		TEP_Fuc();
+		RH_Fuc();
+		ADC_Fuc();
+		SEG_Fuc();
+		LED_Fuc();
+	}
+}
+void SEG_Fuc(void)
+{
+	static u32 lighT=0;
+	if(FLAG_SEG)
+	{
+		FLAG_SEG=0;
+		if(CD_3S)
+		{
+			switch(STEP_GET)
+			{
+				case 0:
+					lighT=T1_1MS;
+					STEP_GET=1;
+					break;
+				case 1:
+					if(RH)
+					{
+						sprintf(SEG_DP,"E``%2u-%2u",(u16)TEP_SAVE,(u16)RH_SAVE);
+					}
+					else
+					{
+						sprintf(SEG_DP,"E``%2u-AA",(u16)TEP_SAVE);
+					}
+					if(T1_1MS-lighT>3000)
+					{
+						CD_3S=0;
+						STEP_GET=0;
+					}						
+					break;				
+			}
+		}
+		else
+		{
+			switch(page)
+			{
+				case 0:
+					sprintf(SEG_DP,"%02u-%02u-%02u",(u16)TIME_NOW[0],(u16)TIME_NOW[1],(u16)TIME_NOW[2]);
+					break;
+				case 1:
+					switch(page_back)
+					{
+						case 0:
+							if(TRIG_CNT)
+							{
+								sprintf(SEG_DP,"C`%2u-%2.1f",(u16)TEP_MAX,TEP_SUM/1.0/TRIG_CNT);
+							}
+							else
+							{
+								sprintf(SEG_DP,"C```````");
+							}
+							break;
+						case 1:
+							if(TRIG_CNT)
+							{
+								sprintf(SEG_DP,"H`%2u-%2.1f",(u16)RH_MAX,RH_SUM/1.0/TRIG_CNT);
+							}
+							else
+							{
+								sprintf(SEG_DP,"H```````");
+							}
+							break;
+						case 2:
+							if(TRIG_CNT)
+							{
+							sprintf(SEG_DP,"F%02u%02u-%02u",(u16)TRIG_CNT,(u16)TIME_TRIG[0],(u16)TIME_TRIG[1]);
+							}
+							else
+							{
+								sprintf(SEG_DP,"F```````");								
+							}
+							break;
+					}
+					break;
+				case 2:
+					sprintf(SEG_DP,"P`````%2u",(u16)TEP_PARA);
+					break;
+			}
+		}
+		SEG_Tran(SEG_DP,SEG_CD);
+	}
+}
+void KEY_Fuc(void)
+{
+	static u8 FLAG_K9=0;
+	static u8 key_past=0;
+	static u32 key_time=0;
+	u8 key_now;
+	key_now=KEY_Martix();
+	if(key_past!=key_now)
+	{
+		key_time=T1_1MS;
+		switch(key_now)
+		{
+			case 0:
+				if(FLAG_K9)
+				{
+					FLAG_K9=0;
+					TRIG_CNT=0;
+					TEP_MAX=0;
+					TEP_SUM=0;
+					RH_MAX=0;
+					RH_SUM=0;
+					TIME_TRIG[0]=0;
+					TIME_TRIG[1]=0;
+				}
+				break;
+			case 4:
+				page=(++page)%3;
+				break;
+			case 5:
+				if(page==1)
+				{
+					page_back=(++page_back)%3;
+				}
+				break;
+			case 8:
+				if(page==2)
+				{
+					if(TEP_PARA>=98)
+					{
+						TEP_PARA=99;
+					}
+					else
+					{
+						TEP_PARA++;
+					}
+				}
+				break;
+			case 9:
+				if(page==2)
+				{
+					if(TEP_PARA<=1)
+					{
+						TEP_PARA=0;
+					}
+					else
+					{
+						TEP_PARA--;
+					}
+				}
+				break;			
+		}
+		key_past=key_now;
+	}
+	if(T1_1MS-key_time>2000)
+	{
+		if(key_past==9&&page==1&&page_back==2)
+		{
+			FLAG_K9=1;
+		}
+	}
+}
+void TIM_Fuc(void)
+{
+	if(FLAG_TIM)
+	{
+		FLAG_TIM=0;
+		DS1302_RD(TIME_NOW);
+	}
+}
+void ADC_Fuc(void)
+{
+	static u8 V_light_past=0;
+	static u16 tep_past=0;
+	static u16 rh_past=0;
+	u8 ADCget;
+	u8 V_light=20;
+	if(FLAG_ADC)
+	{
+		FLAG_ADC=0;
+		ADCget=PCF_ADC();
+		V_light=(ADCget*5.0/255+0.05)*10;
+		if(V_light<10&&V_light_past>=10)
+		{
+			CD_3S=1;
+			if(RH)
+			{
+				TRIG_CNT++;
+				TIME_TRIG[0]=TIME_NOW[0];
+				TIME_TRIG[1]=TIME_NOW[1];
+				TEP_SAVE=TEP;
+				RH_SAVE=RH;
+				TEP_SUM=(TEP_SUM+TEP_SAVE);
+				RH_SUM=(RH_SUM+RH_SAVE);
+				if(TEP_SAVE>TEP_MAX)
+				{
+					TEP_MAX=TEP_SAVE;
+				}
+				if(RH_SAVE>RH_MAX)
+				{
+					RH_MAX=RH_SAVE;
+				}
+				FLAG_L6=(RH_SAVE>rh_past&&TEP_SAVE>tep_past)?(1):(0);
+				tep_past=TEP_SAVE;
+				rh_past=RH_SAVE;
+			}
+		}
+		V_light_past=V_light;
+	}
+}
+void TEP_Fuc(void)
+{
+	if(FLAG_TEP)
+	{
+		FLAG_TEP=0;
+		TEP=DS18B20_TEP();
+		TEP=TEP/16.0;
+	}
+}
+void RH_Fuc(void)
+{
+	if(FREQ<200||FREQ>2000)
+	{
+		RH=0;
+	}
+	else
+	{
+		RH=10+(FREQ-200)*(2.0/45);
+	}
+}
+void LED_Fuc(void)
+{
+	static u8 led_now=0;
+	static u8 led_past=0;
+	//L1,L2
+	if(page!=2)
+	{
+		led_now=(led_now&0xFC)|(1<<page);
+	}
+	else
+	{
+		led_now&=0xFC;
+	}
+	//L3
+	if(CD_3S)
+	{
+		led_now|=(u8)(1<<2);
+	}
+	else
+	{
+		led_now&=(u8)~(1<<2);
+	}
+	//L4
+	if(TEP_SAVE>TEP_PARA)
+	{
+		if(FLAG_FLASH)
+		{
+			led_now|=(u8)(1<<3);
+		}
+		else
+		{
+			led_now&=(u8)~(1<<3);			
+		}
+	}
+	else
+	{
+		led_now&=(u8)~(1<<3);	
+	}
+	//L5
+	if(RH||TRIG_CNT==0)
+	{
+		led_now&=(u8)~(1<<4);	
+	}
+	else
+	{
+		led_now|=(u8)(1<<4);		
+	}
+	//L6
+	if(FLAG_L6&&TRIG_CNT>=2)
+	{
+		led_now|=(u8)(1<<5);	
+	}
+	else
+	{
+		led_now&=(u8)~(1<<5);	
+	}
+	if(led_past!=led_now)
+	{
+		LED_Disp(led_now);
+		led_past=led_now;
+	}
+}
 
-    while (1)
-    {
-        ADC_FUC();
-        KEY_FUC();
-        FRQ_FUC();
-        TIM_FUC();
-        TEP_FUC();
-        SEG_FUC();
-        LED_FUC();
-    }
-}
-void SEG_FUC(void)
-{
-    static u32 TRH = 0;
-    if (FLAG_SEG)
-    {
-        FLAG_SEG = 0;
-        if (TPandRH || CD_3S || RH_DP)
-        {
-            if (!CD_3S)
-            {
-                TRH = T1_1MS;
-                CD_3S = 1;
-            }
-            if (AD_ALLOW == 0)
-            {
-                sprintf(SEG_DP, "E``%2u-AA", (u16)TEMP_C / 10);
-            }
-            else
-            {
-                sprintf(SEG_DP, "E``%2u-%2u", (u16)TEMP_C / 10, (u16)RH / 10);
-            }
-            if (T1_1MS - TRH > 3000)
-            {
-                CD_3S = 0;
-                RH_DP = 0;
-            }
-        }
-        else
-        {
-            switch (page)
-            {
-            case 0:
-                sprintf(SEG_DP, "%02u-%02u-%02u", (u16)TIME_NOW[0], (u16)TIME_NOW[1], (u16)TIME_NOW[2]);
-                break;
-            case 1:
-                switch (BACK_page)
-                {
-                case 0:
-                    if (TRIG_Cnt)
-                    {
-                        sprintf(SEG_DP, "C`%2u-%4.1f", (u16)TEMP_Max / 10, TEMP_Sum / 10.0 / TRIG_Cnt); // TRIG_Cnt);
-                    }
-                    else
-                    {
-                        sprintf(SEG_DP, "C```````");
-                    }
-                    break;
-                case 1:
-                    if (TRIG_Cnt)
-                    {
-                        sprintf(SEG_DP, "H`%2u-%4.1f", (u16)RH_Max / 10, RH_Sum / 10.0 / TRIG_Cnt); // TRIG_Cnt);
-                    }
-                    else
-                    {
-                        sprintf(SEG_DP, "H```````");
-                    }
-                    break;
-                case 2:
-                    if (TRIG_Cnt)
-                    {
-                        sprintf(SEG_DP, "F%02u%02u-%02u", (u16)TRIG_Cnt, (u16)TIME_Trig[0], (u16)TIME_Trig[1]);
-                    }
-                    else
-                    {
-                        sprintf(SEG_DP, "F%02u`````", (u16)TRIG_Cnt);
-                    }
-                    break;
-                }
-                break;
-            case 2:
-                sprintf(SEG_DP, "E`````%2u", (u16)TEMP_PARA / 10);
-                break;
-            }
-        }
-        SEG_Tran(SEG_DP, SEG_Code);
-    }
-}
-void KEY_FUC(void)
-{
-    static u32 keyPt = 0;
-    static u8 keyPast = 0;
-    static u8 keyPflag = 0;
-    u8 keyNow = 0;
-    keyNow = KEY_Martix();
-    if (keyPast != keyNow)
-    {
-        keyPt = T1_1MS;
-        switch (keyNow)
-        {
-        case 0:
-            if (keyPflag)
-            {
-                keyPflag = 0;
-                TEMP_Sum = 0;
-                TEMP_Max = 0;
-                RH_Max = 0;
-                RH_Sum = 0;
-                TRIG_Cnt = 0;
-                TIME_Trig[0] = 0;
-                TIME_Trig[1] = 0;
-            }
-            break;
-        case 4:
-            page = (++page) % 3;
-            break;
-        case 5:
-            if (page == 1)
-            {
-                BACK_page = (++BACK_page) % 3;
-            }
-            break;
-        case 8:
-            if (TEMP_PARA == 990)
-            {
-                TEMP_PARA = 0;
-            }
-            if (page == 2)
-            {
-                TEMP_PARA += 10;
-            }
-            break;
-        case 9:
-            if (TEMP_PARA == 0)
-            {
-                TEMP_PARA = 990;
-            }
-            if (page == 2)
-            {
-                TEMP_PARA -= 10;
-            }
-            break;
-        }
-        keyPast = keyNow;
-    }
-    if (T1_1MS - keyPt > 2000)
-    {
-        switch (keyPast)
-        {
-        case 9:
-            if (page == 1)
-            {
-                keyPflag = 1;
-            }
-            break;
-        }
-    }
-}
-void LED_FUC(void)
-{
-    static u8 ledPast = 0;
-    static u32 Ltime = 0;
-    // L1,L2,L3
-    LED_DP |= (u8)1 << page;
-    LED_DP &= ((u8)1 << page) | 0xF8;
-    // L4
-    if (FLAG_overT)
-    {
-        if (T1_1MS - Ltime > 100)
-        {
-            Ltime = T1_1MS;
-            flagL4 = !flagL4;
-        }
-        if (flagL4)
-        {
-            LED_DP |= (1 << 3);
-        }
-        else
-        {
-            LED_DP &= ~(1 << 3);
-        }
-    }
-    else
-    {
-        LED_DP &= ~(1 << 3);
-    }
-    // L5
-    if (flagL5)
-    {
-        flagL5 = 0;
-        if (AD_ALLOW)
-        {
-            LED_DP &= ~(1 << 4);
-        }
-        else
-        {
-            LED_DP |= (1 << 4);
-        }
-    }
-    // L6
-    if (flagL6)
-    {
-        flagL6 = 0;
-        if (TRIG_Cnt > 1 && RH > RH_P && TEMP_C > TEMP_P)
-        {
-            LED_DP |= (1 << 5);
-        }
-        else
-        {
-            LED_DP &= ~(1 << 5);
-        }
-        TEMP_P = TEMP_C;
-        RH_P = RH;
-    }
-    if (ledPast != LED_DP)
-    {
-        ledPast = LED_DP;
-        LED_Disp(LED_DP);
-    }
-}
-void ADC_FUC(void)
-{
-    float fADC;
-    u16 V_light;
-    static u8 past_DL = 0;
-    u8 ADCget;
-    if (FLAG_ADC)
-    {
-        FLAG_ADC = 0;
-        ADCget = PCF8591_ADC();
-        fADC = ADCget * 5.0 / 255;
-        V_light = fADC * 10;
-        if (V_light < 10)
-        {
-            DARK_nLIGHT = 1;
-            if (past_DL == 0)
-            {
-                RH_DP = 1;
-                flagL5 = 1;
-                flagL6 = 1;
-                if (AD_ALLOW && CD_3S == 0)
-                {
-                    TPandRH = 1;
-                    FLAG_TEP = 1;
-                    FLAG_FREQ = 1;
-                    TRIG_Cnt++;
-                    TIME_Trig[0] = TIME_NOW[0];
-                    TIME_Trig[1] = TIME_NOW[1];
-                }
-                else
-                {
-                    TPandRH = 0;
-                }
-            }
-        }
-        else
-        {
-            TPandRH = 0;
-            DARK_nLIGHT = 0;
-        }
-        past_DL = DARK_nLIGHT;
-    }
-}
-void TIM_FUC(void)
-{
-    if (FLAG_TIME)
-    {
-        FLAG_TIME = 0;
-        DS1302_RD(TIME_NOW);
-    }
-}
-void TEP_FUC(void)
-{
-    static u8 stepTP = 0;
-    static u32 timeTP = 0;
-    s16 tp = 0;
-    switch (stepTP)
-    {
-    case 0:
-        DS18B20_ST();
-        stepTP = 1;
-        timeTP = T1_1MS;
-        break;
-    case 1:
-        if (T1_1MS - timeTP > 800)
-        {
-            tp = DS18B20_RD();
-            TEMP_C = (tp / 16.0) * 10;
-            timeTP = T1_1MS;
-            stepTP = 2;
-        }
-        break;
-    case 2:
-        if (T1_1MS - timeTP > 5)
-        {
-            stepTP = 0;
-        }
-    }
-    // get
-    if (FLAG_TEP)
-    {
-        FLAG_TEP = 0;
-        TEMP_Sum += TEMP_C;
-        if (TEMP_C > TEMP_Max)
-        {
-            TEMP_Max = TEMP_C;
-        }
-    }
-    if (TEMP_C > TEMP_PARA)
-    {
-        FLAG_overT = 1;
-    }
-    else
-    {
-        FLAG_overT = 0;
-    }
-}
-void FRQ_FUC(void)
-{
-    if ((Freq >= 200) && (Freq <= 2000))
-    {
-        if (FLAG_FREQ)
-        {
-            FLAG_FREQ = 0;
-            RH = (Freq * 2.0 / 45 + 10.0 / 9) * 10;
-            if (RH > RH_Max)
-            {
-                RH_Max = RH;
-            }
-            RH_Sum = RH_Sum + RH;
-        }
-        AD_ALLOW = 1;
-    }
-    else
-    {
-        AD_ALLOW = 0;
-        RH = 0;
-    }
-}
 void T1_ISR(void) interrupt 3
 {
-    static u32 T1_10MS = 0, T1_100MS = 0, T1_1S = 0;
-    T1_1MS++;
-    if (++T1_10MS == 10)
-    {
-        T1_10MS = 0;
-        FLAG_SEG = 1;
-    }
-    if (++T1_100MS == 100)
-    {
-        T1_100MS = 0;
-        FLAG_ADC = 1;
-        FLAG_TIME = 1;
-    }
-    if (++T1_1S == 1000)
-    {
-        T1_1S = 0;
-        Freq = (u16)(TH0 << 8) | TL0;
-        TR0 = 0;
-        TL0 = 0x00;
-        TH0 = 0x00;
-        TR0 = 1;
-    }
-    SEG_Disp(SEG_Code, SEG_POSI);
-    SEG_POSI = (++SEG_POSI) & 0x07;
+	static u32 T1_100MS=0,T1_1S=0;
+	T1_1MS++;
+	if(++T1_100MS==100)
+	{
+		T1_100MS=0;
+		FLAG_SEG=1;
+		FLAG_TIM=1;
+		FLAG_TEP=1;
+		FLAG_ADC=1;
+		FLAG_FLASH=!FLAG_FLASH;
+	}
+	if(++T1_1S==1000)
+	{
+		T1_1S=0;
+		FREQ=(u16)(TH0<<8)|TL0;
+		TR0=0;
+		TH0=0x00;
+		TL0=0x00;
+		TF0=0;
+		TR0=1;
+	}
+	SEG_Disp(SEG_CD,SEG_PS);
+	SEG_PS=(++SEG_PS)&0x07;
 }
