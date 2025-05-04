@@ -22,8 +22,8 @@ u16 DATE = 0;
 u8 TIME_NOW[3] = {0};
 u8 TIME_SAVE[2] = {0};
 u8 FLAG_TIM = 0;
-//KEY
-u8 cnt=0;
+// KEY
+u8 cnt = 0;
 
 unsigned char Char_Hex(u8 c);
 void EE_Fuc(void);
@@ -40,11 +40,11 @@ void main(void)
     T1_Int();
     while (1)
     {
-      KEY_Fuc();
-			TIM_Fuc();
-			SEG_Fuc();
-			LED_Fuc();
-			EE_Fuc();
+        KEY_Fuc();
+        TIM_Fuc();
+        SEG_Fuc();
+        LED_Fuc();
+        EE_Fuc();
     }
 }
 void SEG_Fuc(void)
@@ -55,17 +55,17 @@ void SEG_Fuc(void)
         switch (page)
         {
         case 0:
-            sprintf(SEG_DP,"%02u-%02u-%02u", (u16)TIME_NOW[0], (u16)TIME_NOW[1], (u16)TIME_NOW[2]);
+            sprintf(SEG_DP, "%02u-%02u-%02u", (u16)TIME_NOW[0], (u16)TIME_NOW[1], (u16)TIME_NOW[2]);
             break;
         case 1:
-						if(cnt)
-						{
-							sprintf(SEG_DP, "C```%4u",DATE);
-						}
-						else
-						{
-							sprintf(SEG_DP, "C```````");
-						}
+            if (cnt)
+            {
+                sprintf(SEG_DP, "C```%4u", DATE);
+            }
+            else
+            {
+                sprintf(SEG_DP, "C```````");
+            }
             break;
         case 2:
             sprintf(SEG_DP, "E``%02u-%02u", (u16)TIME_SAVE[0], (u16)TIME_SAVE[1]);
@@ -89,8 +89,8 @@ void KEY_Fuc(void)
             page = (++page) % 3;
             if (page == 1)
             {
-              DATE = 0;
-							cnt=0;
+                DATE = 0;
+                cnt = 0;
             }
             if (page == 2)
             {
@@ -100,81 +100,81 @@ void KEY_Fuc(void)
         case 5:
             if (page == 1)
             {
-              DATE = 0;
-							TIME_SAVE[0]=0;
-							TIME_SAVE[1]=0;
-							cnt=0;
+                DATE = 0;
+                TIME_SAVE[0] = 0;
+                TIME_SAVE[1] = 0;
+                cnt = 0;
             }
             break;
             // num
         case 6:
-            if (page == 1 && cnt <=3)
+            if (page == 1 && cnt <= 3)
             {
                 DATE = DATE * 10 + 0;
-								cnt++;
+                cnt++;
             }
             break;
         case 10:
-            if (page == 1 && cnt <=3)
+            if (page == 1 && cnt <= 3)
             {
                 DATE = DATE * 10 + 1;
-								cnt++;
+                cnt++;
             }
             break;
         case 14:
-            if (page == 1 && cnt <=3)
+            if (page == 1 && cnt <= 3)
             {
                 DATE = DATE * 10 + 2;
-								cnt++;
+                cnt++;
             }
             break;
         case 18:
-            if (page == 1 && cnt <=3)
+            if (page == 1 && cnt <= 3)
             {
-               DATE = DATE * 10 + 3;
-							cnt++;
+                DATE = DATE * 10 + 3;
+                cnt++;
             }
             break;
         case 9:
-            if (page == 1 && cnt <=3)
+            if (page == 1 && cnt <= 3)
             {
                 DATE = DATE * 10 + 4;
-							cnt++;
+                cnt++;
             }
             break;
         case 13:
-            if (page == 1 && cnt <=3)
+            if (page == 1 && cnt <= 3)
             {
                 DATE = DATE * 10 + 5;
-							cnt++;
+                cnt++;
             }
             break;
         case 17:
-            if (page == 1 && cnt <=3)
+            if (page == 1 && cnt <= 3)
             {
                 DATE = DATE * 10 + 6;
-							cnt++;
+                cnt++;
             }
             break;
         case 8:
-            if (page == 1 && cnt <=3)
+            if (page == 1 && cnt <= 3)
             {
                 DATE = DATE * 10 + 7;
-							cnt++;
+                cnt++;
             }
             break;
         case 12:
-            if (page == 1 && cnt <=3)
+            if (page == 1 && cnt <= 3)
             {
                 DATE = DATE * 10 + 8;
-							cnt++;
+                cnt++;
             }
             break;
         case 16:
-            if (page == 1 && cnt <=3)
+            if (page == 1 && cnt <= 3)
             {
                 DATE = DATE * 10 + 9;
-							cnt++;
+                cnt++;
             }
             break;
         }
@@ -183,20 +183,20 @@ void KEY_Fuc(void)
 }
 unsigned char Char_Hex(u8 c)
 {
-		u8 vc=0;
+    u8 vc = 0;
     if (c >= '0' && c <= '9')
     {
-        vc=c - '0';
+        vc = c - '0';
     }
     else if (c >= 'A' && c <= 'F')
     {
-        vc=c - 'A' + 10;
+        vc = c - 'A' + 10;
     }
     else if (c >= 'a' && c <= 'f')
     {
-        vc=c - 'a' + 10;
+        vc = c - 'a' + 10;
     }
-		return vc;
+    return vc;
 }
 void TIM_Fuc(void)
 {
@@ -209,27 +209,27 @@ void TIM_Fuc(void)
 void EE_Fuc(void)
 {
     u8 tempE;
-		u16 saveD=0;
+    u16 saveD = 0;
     if (FLAG_SAVE)
     {
         FLAG_SAVE = 0;
         TIME_SAVE[0] = TIME_NOW[0];
         TIME_SAVE[1] = TIME_NOW[1];
-				E2_RD(&tempE,2,1);
-				saveD=(tempE<<8);
-				E2_RD(&tempE,3,1);
-				saveD|=tempE;
-				if(DATE)
-				{
-					FLAG_L4 = (DATE > saveD) ? (1) : (0);
-				}
+        E2_RD(&tempE, 2, 1);
+        saveD = (tempE << 8);
+        E2_RD(&tempE, 3, 1);
+        saveD |= tempE;
+        if (DATE)
+        {
+            FLAG_L4 = (DATE > saveD) ? (1) : (0);
+        }
         sprintf(EE_DATE, "%04x", DATE);
         tempE = TIME_SAVE[0];
-				E2_WR(&tempE,0,1);
+        E2_WR(&tempE, 0, 1);
         tempE = TIME_SAVE[1];
-				E2_WR(&tempE, 1, 1);
+        E2_WR(&tempE, 1, 1);
         tempE = (Char_Hex(EE_DATE[0]) << 4) | Char_Hex(EE_DATE[1]);
-				E2_WR(&tempE, 2, 1);
+        E2_WR(&tempE, 2, 1);
         tempE = (Char_Hex(EE_DATE[2]) << 4) | Char_Hex(EE_DATE[3]);
         E2_WR(&tempE, 3, 1);
     }
