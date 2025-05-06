@@ -8,5 +8,8 @@ void LED_Disp(u8 out);
 void SEG_Tran(u8 *pDP,u8 *pCD);
 void SEG_Disp(u8 *pCD,u8 PS);
 u8 KEY_Matrix(void);
+void Relay(u8 a);
+void Uart_Send(u8 *pstr);
+void Uart_Int(void);
 
 #endif
