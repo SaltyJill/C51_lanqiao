@@ -62,6 +62,7 @@ void Uart_Send(u8 *pstr)
             ;
         }
         i++;
+				TI=0;
     }
 }
 
@@ -205,29 +206,42 @@ unsigned char KEY_Matrix(void)
     {
         switch (~RD1)
         {
-        case 0x8000:
+        case 0x800F:
             btn = 4;
             break;
-        case 0x4000:
+        case 0x400F:
             btn = 5;
             break;
-        case 0x0800:
+        case 0x080F:
             btn = 8;
             break;
-        case 0x0400:
+        case 0x040F:
             btn = 9;
             break;
-        case 0x0080:
+        case 0x008F:
             btn = 12;
             break;
-        case 0x0040:
+        case 0x004F:
             btn = 13;
             break;
-
         default:
             btn = 0;
             break;
         }
     }
     return btn;
+}
+
+void Relay(u8 st)
+{
+	if(st)
+	{
+		P0|=(1<<4);
+	}
+	else
+	{
+		P0&=~(1<<4);
+	}
+	P2=(P2&0x1F)|0xA0;
+	P2&=0x1F;
 }

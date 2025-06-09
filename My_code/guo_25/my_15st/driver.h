@@ -11,5 +11,6 @@ void Uart_Send(u8 *pstr);
 void Seg_Tran(u8 *pDip, u8 *pCod);
 void SEG_Disp(u8 *pCod, u8 pos);
 unsigned char KEY_Matrix(void);
+void Relay(u8 st);
 
 #endif
