@@ -16,10 +16,9 @@ u8 page = 0;
 u8 page_PARA = 0;
 
 // UART
-u8 FLAG_URAT = 0;
-u8 strpos = 0;
+u8 FLAG_URT = 0;
+u8 STRpos = 0;
 u8 strRECV[10] = {0};
-u8 QUADtime = 0;
 u8 FALG_TG = 0; // TG_POSI arrived flag
 u8 FLAG_RC = 0; // TG_POSI received flag
 // POSI
@@ -40,6 +39,8 @@ u8 LIGHT_V = 1;
 u16 FREQ = 0;
 // WAVE
 u8 FLAG_WAVE = 0;
+sbit wave_P10 = P1 ^ 0;
+sbit wave_P11 = P1 ^ 1;
 
 void UART_Fuc(void);
 void ADC_Fuc(void);
@@ -71,42 +72,37 @@ void main(void)
 
 void SEG_Fuc(void)
 {
-    if (FLAG_SEG)
+    switch (page)
     {
-        FLAG_SEG = 0;
-        switch (page)
+    case 0:
+        if (STATUS == 0)
+        {
+            sprintf(SEG_DP, "L%3u-%3u", (u16)(POSI[0]), (u16)(POSI[1]));
+        }
+        else
+        {
+            sprintf(SEG_DP, "L%3u-%3u", (u16)POSI_TG[0], (u16)POSI_TG[1]);
+        }
+        break;
+    case 1:
+        switch (STATUS)
         {
         case 0:
-            if (!STATUS)
-            {
-                sprintf(SEG_DP, "L%3u-%3u", POSI[0], POSI[1]);
-            }
-            else
-            {
-                sprintf(SEG_DP, "L%3u-%3u", POSI_TG[0], POSI_TG[1]);
-            }
+            sprintf(SEG_DP, "E2`-----");
             break;
         case 1:
-            switch (STATUS)
-            {
-            case 0:
-                sprintf(SEG_DP, "E2`-----");
-                break;
-            case 1:
-                sprintf(SEG_DP, "E1`%5.1f", SPEED / 10.0);
-                break;
-            case 2:
-                sprintf(SEG_DP, "E3`%5u", DISTENT);
-                break;
-            }
+            sprintf(SEG_DP, "E1`%6.1f", SPEED / 10.0);
             break;
         case 2:
-            sprintf(SEG_DP, "P`%2.1f`%3d", PARA_R / 10.0, PARA_B);
-            break;
-        default:
+            sprintf(SEG_DP, "E3`%5u", (u16)DISTENT);
             break;
         }
+        break;
+    case 2:
+        sprintf(SEG_DP, "P`%2.1f`%3d", PARA_R / 10.0, (s16)PARA_B);
+        break;
     }
+    Seg_Tran(SEG_DP, SEG_CD);
 }
 
 void KEY_Fuc(void)
@@ -119,17 +115,18 @@ void KEY_Fuc(void)
         switch (key_now)
         {
         case 4:
-            if ((FLAG_RC && !STATUS) || (!FALG_BLOCK && STATUS == 2))
+            if ((FLAG_RC && STATUS == 0) || (FALG_BLOCK == 0 && STATUS == 2))
             {
                 STATUS = 1;
+                FLAG_RC = 0;
             }
-            else if (STATUS == 1)
+            if (STATUS == 1)
             {
                 STATUS = 2;
             }
             break;
         case 5:
-            if (!STATUS)
+            if (STATUS == 0)
             {
                 POSI[0] = 0;
                 POSI[1] = 0;
@@ -140,29 +137,38 @@ void KEY_Fuc(void)
             {
                 page_PARA = 0;
             }
-            page = (page++) % 3;
+            page = (++page) % 3;
             break;
         case 9:
-            page_PARA = !page_PARA;
+            if (page == 2)
+            {
+                page_PARA = !page_PARA;
+            }
             break;
         case 12:
-            if (page_PARA)
+            if (page == 2)
             {
-                PARA_B = (PARA_B > 85) ? 90 : PARA_B + 5;
-            }
-            else
-            {
-                PARA_R = (PARA_R > 19) ? 20 : PARA_R + 1;
+                if (page_PARA)
+                {
+                    PARA_B = (PARA_B > 85) ? 90 : PARA_B + 5;
+                }
+                else
+                {
+                    PARA_R = (PARA_R > 19) ? 20 : PARA_R + 1;
+                }
             }
             break;
         case 13:
-            if (page_PARA)
+            if (page == 2)
             {
-                PARA_B = (PARA_B < -85) ? -90 : PARA_B - 5;
-            }
-            else
-            {
-                PARA_R = (PARA_R < 11) ? 10 : PARA_R - 1;
+                if (page_PARA)
+                {
+                    PARA_B = (PARA_B < -85) ? -90 : PARA_B - 5;
+                }
+                else
+                {
+                    PARA_R = (PARA_R < 11) ? 10 : PARA_R - 1;
+                }
             }
             break;
         }
@@ -172,16 +178,16 @@ void KEY_Fuc(void)
 
 void DEV_Fuc(void)
 {
-    u8 relay;
-    relay = (STATUS == 1) ? 1 : 0;
-    Relay(relay);
+    u8 out = 0;
+    out = (STATUS == 1) ? 1 : 0;
+    Relay(out);
 }
 
 void LED_Fuc(void)
 {
     static u8 led_past = 0;
     static u8 flag_L1 = 0;
-    static u8 cnt_L3 = 0;
+    static u16 cnt_L3 = 0;
     static u32 time_L = 0;
     u8 led_now = 0;
     if (T1_1MS - time_L > 100)
@@ -248,12 +254,9 @@ void WAVE_Fuc(void)
 {
     u8 n = 4;
     u16 temp_w = 0;
-    sbit wave_P10 = P1 ^ 0;
-    sbit wave_P11 = P1 ^ 1;
     if (FLAG_WAVE)
     {
         FLAG_WAVE = 0;
-        CR = 0;
         CH = 0xF4;
         CL = 0xFF;
         CF = 0;
@@ -265,6 +268,8 @@ void WAVE_Fuc(void)
                 ;
             }
             CF = 0;
+            CH = 0xF4;
+            CL = 0xFF;
             wave_P10 ^= 1;
         }
         CR = 0;
@@ -272,7 +277,7 @@ void WAVE_Fuc(void)
         CL = 0x00;
         CF = 0;
         CR = 1;
-        while (!CF0 && wave_P11)
+        while (!CF && wave_P11)
         {
             ;
         }
@@ -292,56 +297,87 @@ void WAVE_Fuc(void)
 
 void ACT_Fuc(void)
 {
-    static float road = 0; // 10*
-    static float ran = 0;
-    u16 abs_x = 0, abs_y = 0;
-    // run
-    if (FLAG_ACT)
+    float fl;
+    static u16 road;
+    static u16 ran;
+    u16 x_tgabs;
+    u16 y_tgabs;
+    if ((POSI[0] != POSI_TG[0]) && (POSI[1] != POSI_TG[1]))
     {
-        FLAG_ACT = 0;
-        switch (STATUS)
+        x_tgabs = abs(POSI_TG[0] - POSI[0]);
+        y_tgabs = abs(POSI_TG[1] - POSI[1]);
+        fl = (x_tgabs * x_tgabs * 1.0) + (y_tgabs * y_tgabs * 1.0);
+        road = (u16)(sqrt(fl) * 10.0);
+    }
+    if (DISTENT <= 30 && STATUS == 1) // wait
+    {
+        FALG_BLOCK = 1;
+        STATUS = 2;
+    }
+    if (DISTENT > 30 && STATUS == 2)
+    {
+        FALG_BLOCK = 0;
+    }
+    if (STATUS == 1) // run
+    {
+        SPEED = (3.14 * PARA_R * FREQ) / 100.0 + PARA_B * 10.0;
+        if (FLAG_ACT)
         {
-        case 0:
-            // rest
-            if (FLAG_RC) // distence of target between now position
+            FLAG_ACT = 0;
+            if (road > ran)
             {
-                FLAG_RC = 0;
-                abs_x = abs(POSI[0] - POSI_TG[0]);
-                abs_y = abs(POSI[1] - POSI_TG[1]);
-                road = sqrt(abs_x * abs_x + abs_y * abs_y) * 10;
-            }
-            break;
-        case 1:
-            // run
-            if (ran >= road)
-            {
-                STATUS = 0;
-                ran = 0;
-                SPEED = 0;
+                ran = (ran + SPEED);
             }
             else
             {
-                SPEED = (3.14 * PARA_R * FREQ) / 100.0 + PARA_B * 10.0;
-                ran = ran + (SPEED * 0.0001);
+                POSI[0] = POSI_TG[0];
+                POSI[1] = POSI_TG[1];
+                FALG_TG = 1;
+                STATUS = 0;
             }
-            // block
-            if (DISTENT < 30)
-            {
-                FALG_BLOCK = 1;
-                STATUS = 2;
-            }
-            break;
-        case 2:
-            if (DISTENT >= 30)
-            {
-                FALG_BLOCK = 0;
-                STATUS = 1;
-            }
-            break;
-        default:
-            break;
         }
     }
+    /* if (FLAG_ACT)
+     {
+         FLAG_ACT = 0;
+         switch (STATUS)
+         {
+         case 0:
+             // rest
+             if (FLAG_RC) // distence of target between now position
+             {
+                 x_tgabs = POSI_TG[0]-POSI[0];
+                 y_tgabs = POSI_TG[1]-POSI[1];
+                 road = sqrt(x_tgabs * x_tgabs + y_tgabs * y_tgabs);
+             }
+             break;
+         case 1:
+             if (DISTENT < 30)//wait
+             {
+                 FALG_BLOCK = 1;
+                 STATUS = 2;
+             }
+             else if (road>0)//run
+             {
+                                 SPEED = (3.14 * PARA_R * FREQ) / 100 + PARA_B * 10.0;
+                 road -= (SPEED * 0.01);
+             }
+             else
+             {
+                                 POSI[0]=POSI_TG[0];
+                               POSI[1]=POSI_TG[1];
+                                 FALG_TG=1;
+                               STATUS = 0;
+             }
+             break;
+         case 2:
+             if (DISTENT >= 30)
+             {
+                 FALG_BLOCK = 0;
+             }
+             break;
+         }
+     }*/
 }
 
 void ADC_Fuc(void)
@@ -369,15 +405,16 @@ void UART_Fuc(void)
     u8 status_REC[][5] = {"Idle", "Busy", "Wait"};
     u8 POSI_REC[10] = {0};
     u16 x = 0, y = 0;
-    if (FLAG_URAT && QUADtime)
+    if (FLAG_URT && T1_1MS % 2 == 0)
     {
-        FLAG_URAT = 0;
-        QUADtime = 0;
-        if (strpos == 1)
+        FLAG_URT = 0;
+        if (STRpos == 1)
         {
             if (strRECV[0] == '?')
             {
                 Uart_Send(status_REC[STATUS]);
+                sprintf(POSI_REC, "(%u,%u)", POSI_TG[0], POSI_TG[1]); //
+                Uart_Send(POSI_REC);                                  //
             }
             else if (strRECV[0] == '#')
             {
@@ -387,12 +424,13 @@ void UART_Fuc(void)
         }
         else
         {
-            match = sscanf(strRECV, "(%u,%u)", x, y);
-            if (match == 2)
+            match = sscanf(strRECV, "(%u,%u)",&x,&y);
+            if (match == 2 && x >= 0 && x < 1000 && y >= 0 && y < 1000)
             {
                 POSI_TG[0] = x;
                 POSI_TG[1] = y;
                 FLAG_RC = 1;
+                Uart_Send("SUCCE"); //
             }
             else
             {
@@ -400,52 +438,45 @@ void UART_Fuc(void)
             }
         }
     }
-    strpos = 0;
+    STRpos = 0;
+    strRECV[STRpos] = '\0';
 }
 
-void Uart_ISR(void) interrupted 4
+void Uart_ISR(void) interrupt 4
 {
     if (RI)
     {
         RI = 0;
-        FLAG_URAT = 1;
-        if (strpos < 9)
+        FLAG_URT = 1;
+        if (STRpos < 9)
         {
-            strRECV[strpos++] = SBUF;
-            strRECV[strpos] = 0;
+            strRECV[STRpos++] = SBUF;
+            strRECV[STRpos] = 0;
         }
     }
 }
 
-void T1_ISR(void) interrupted 3
+void T1_ISR(void) interrupt 3
 {
-    static u32 T1_2MS = 0;
     static u32 T1_100MS = 0;
     static u32 T1_1S = 0;
     T1_1MS++;
     if (++T1_100MS == 100)
     {
         T1_100MS = 0;
-        FLAG_SEG = 1;
         FLAG_WAVE = 1;
-        FLAG_ACT = 1;
         FLAG_ADC = 1;
+        FLAG_ACT = 1;
     }
     if (++T1_1S == 1000)
     {
         T1_1S = 0;
+        FREQ = (u16)(TH0 << 8) + TL0;
         TR0 = 0;
-        FREQ = (u16)TH0 << 8 | (u16)TL0;
         TH0 = 0x00;
         TL0 = 0x00;
         TR0 = 1;
     }
-    if (++T1_2MS == 2)
-    {
-        T1_2MS = 0;
-        QUADtime = 1;
-    }
-
     SEG_Disp(SEG_CD, SEG_PS);
-    SEG_PS = (SEG_PS++) & 0x07;
+    SEG_PS = (++SEG_PS) & 0x07;
 }
